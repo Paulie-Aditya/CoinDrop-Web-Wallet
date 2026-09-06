@@ -1,0 +1,27 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.actions :global(.btn) {
+  position: relative;
+}
+
+.soon {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-300);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.08rem 0.36rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}

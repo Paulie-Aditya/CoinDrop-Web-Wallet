@@ -1,0 +1,238 @@
+/* ============================================================
+   CoinDrop Wallet — design tokens, reset, primitives
+   Identity carried over from coindrop.cc: deep royal-blue ground,
+   a single gold accent, Geist + Geist Mono, hairline borders.
+   ============================================================ */
+
+:root {
+  /* Surfaces — coindrop.cc's tuned Tailwind blue scale */
+  --bg: #1c398e; /* blue-900 — the site's page background */
+  --bg-deep: #162456; /* blue-950 — insets, segmented controls */
+  --bg-raised: #193cb8; /* blue-800 — solid raised elements */
+  --panel: rgba(25, 60, 184, 0.3); /* blue-800 / 30 — card fill */
+  --panel-hover: rgba(25, 60, 184, 0.45);
+  --panel-solid: #193cb8; /* blue-800 */
+  --line: rgba(20, 71, 230, 0.5); /* blue-700 / 50 — hairline */
+  --line-strong: #1447e6; /* blue-700 */
+
+  /* Ink */
+  --ink: #ffffff;
+  --ink-200: #bedbff; /* blue-200 — secondary */
+  --ink-300: #90c5ff; /* blue-300 — meta / eyebrow */
+  --ink-500: #54a2ff; /* blue-400 — faint */
+
+  /* Accent — the coin */
+  --gold: #fac800; /* yellow-400 */
+  --gold-bright: #ffe02a; /* yellow-300 */
+  --gold-dim: rgba(250, 200, 0, 0.16);
+  --on-gold: #1c398e; /* blue-900 — as the site sets text on gold buttons */
+
+  /* Semantic amounts */
+  --pos: #4ade80; /* received */
+  --neg: #ff6568; /* sent */
+
+  /* Shape + depth */
+  --r-sm: 0.375rem;
+  --r: 0.625rem;
+  --r-lg: 1rem;
+  --shadow: 0 1px 2px rgba(8, 15, 51, 0.45), 0 14px 34px -14px rgba(8, 15, 51, 0.6);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+
+  --maxw: 60rem;
+
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--r-sm);
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--on-gold);
+}
+
+/* ---------- primitives ---------- */
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-300);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--ink-200);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+/* Buttons ------------------------------------------------ */
+.btn {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  --btn-bd: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: var(--r);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-bd);
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease,
+    opacity 0.16s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  --btn-bg: var(--gold);
+  --btn-fg: var(--on-gold);
+}
+.btn--primary:not([disabled]):hover {
+  --btn-bg: var(--gold-bright);
+}
+
+.btn--outline {
+  --btn-bd: var(--line-strong);
+  --btn-fg: var(--ink);
+}
+.btn--outline:not([disabled]):hover {
+  --btn-bg: var(--panel-hover);
+}
+
+.btn--ghost {
+  --btn-fg: var(--ink-200);
+  padding-inline: 0.6rem;
+}
+.btn--ghost:not([disabled]):hover {
+  --btn-fg: var(--ink);
+  --btn-bg: var(--panel);
+}
+
+.btn--sm {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+}
+.btn--block {
+  width: 100%;
+}
+
+/* skeleton --------------------------------------------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  border-radius: var(--r-sm);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(190, 219, 255, 0.12),
+    transparent
+  );
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .skeleton::after {
+    display: none;
+  }
+}

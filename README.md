@@ -1,73 +1,118 @@
-# React + TypeScript + Vite
+# CoinDrop Wallet (web)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The web companion for the [CoinDrop](https://coindrop.cc) tipping bot. A logged-in
+user sees the coins they hold and every tip, drop, deposit and withdrawal that's
+moved through their account. **View-only for now** — sending to other usernames
+comes later.
 
-Currently, two official plugins are available:
+Stack: React 19 + Vite + TypeScript, React Router, TanStack Query, axios. No UI
+framework — the components and design tokens are local (`src/index.css`).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Running it
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`npm run dev` starts in **mock mode** (`VITE_USE_MOCK="true"` in `.env`): fake data,
+a fake Discord login, no backend needed. Click "Continue with Discord" and you're in.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+To run against a real backend, set in `.env`:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+VITE_API_URL="https://your-backend"
+VITE_USE_MOCK="false"
+```
+
+Other scripts: `npm run build`, `npm run lint`, `npm run preview`.
+
+## How auth works
+
+Cookie session — the frontend never touches a token.
+
+1. `startLogin("discord")` does a full-page redirect to
+   `${VITE_API_URL}/auth/discord?redirect=<origin>/auth/callback`.
+2. The backend runs the Discord OAuth dance, sets an **httpOnly session cookie**,
+   and redirects the browser to `/auth/callback` on this app.
+3. `/auth/callback` re-checks the session and routes to `/wallet`.
+4. Every request goes out with `withCredentials: true`. A `401` from `/auth/me`
+   means "not logged in" and bounces to `/login`.
+
+Telegram and Google buttons are in the UI but disabled (`AUTH_PROVIDERS` in
+`src/api/auth.ts`) until their backend routes exist.
+
+## Backend API contract
+
+The frontend expects these endpoints under `VITE_API_URL`. The mock layer in
+`src/api/mock/` implements the same shapes — keep them in sync.
+
+Ledger amounts are `DECIMAL(65,0)` **smallest-unit integers** (wei, sats, …),
+always sent as **strings**. The frontend formats them with `decimals`.
+
+### `GET /auth/me`
+`200` → `{ "user": { "id": string, "username": string, "avatarUrl": string | null, "platform": "discord" } }`
+`401` if there's no valid session.
+
+### `POST /auth/logout`
+Clears the session cookie. `200`/`204`.
+
+### `GET /auth/discord`
+Starts OAuth. Honors a `?redirect=` back to this app; ends by redirecting to
+`/auth/callback` (append `?error=...` if the user bailed).
+
+### `GET /wallet/balances`
+```jsonc
+{
+  "totalUsd": "8161.60",          // sum of usdValue, decimal string
+  "balances": [
+    {
+      "currencyId": 1,
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "decimals": 8,
+      "amount": "4120000",         // smallest-unit integer string
+      "usdValue": "2636.80"        // or null when the coin has no price
+    }
+  ]
+}
+```
+Zero balances can be included or omitted — the UI hides them either way.
+
+### `GET /wallet/transactions`
+Query params (all optional): `direction` = `received` | `sent`, `currency` = symbol,
+`cursor` = opaque string from a previous response, `limit`.
+
+```jsonc
+{
+  "transactions": [
+    {
+      "id": "tx_2f1a",
+      "direction": "in",           // "in" | "out"
+      "kind": "tip",               // tip | airdrop | raffle | quickdrop | slowdrop
+                                   //  | mathtip | triviadrop | swap | deposit | withdrawal
+      "counterparty": "quill",     // other party's username, or null
+      "symbol": "USDC",
+      "decimals": 6,
+      "amount": "25000000",
+      "usdValue": "25.00",         // or null
+      "timestamp": "2026-09-06T12:00:00.000Z"
+    }
+  ],
+  "nextCursor": "8"                // null when there are no more pages
+}
+```
+
+## Layout
+
+```
+src/
+  api/            axios instance, endpoint fns, types, and the mock backend
+  app/            router + auth gate
+  components/     Button, CoinLoader, CoinChip, PageShell, …
+  features/
+    auth/         useSession, useLogout
+    wallet/       useBalances, useTransactions, BalancesCard, ActivityCard
+  lib/            formatUnits / formatUsd / relativeTime, query client
+  pages/          Landing, Login, AuthCallback, Wallet, NotFound
 ```
