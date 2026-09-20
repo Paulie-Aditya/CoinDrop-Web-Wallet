@@ -23,6 +23,37 @@ export function formatUnits(amount: string, decimals: number): string {
   return negative && body !== "0" ? `-${body}` : body;
 }
 
+/** Full-precision decimal string, no grouping/truncation — for form inputs
+ *  (e.g. a "Max" fill button), never for display. */
+export function formatUnitsPlain(amount: string, decimals: number): string {
+  let negative = false;
+  let digits = amount.trim();
+  if (digits.startsWith("-")) {
+    negative = true;
+    digits = digits.slice(1);
+  }
+  if (!/^\d+$/.test(digits)) return "0";
+
+  const padded = digits.padStart(decimals + 1, "0");
+  const whole = padded.slice(0, padded.length - decimals);
+  const frac = decimals > 0 ? padded.slice(padded.length - decimals).replace(/0+$/, "") : "";
+  const body = frac ? `${whole}.${frac}` : whole;
+  return negative && body !== "0" ? `-${body}` : body;
+}
+
+/** Inverse of formatUnits(Plain): "0.5", 8 -> "50000000" (smallest-unit integer string). */
+export function parseUnits(display: string, decimals: number): string {
+  const trimmed = display.trim();
+  if (!trimmed) return "0";
+  const negative = trimmed.startsWith("-");
+  const unsigned = negative ? trimmed.slice(1) : trimmed;
+  const [wholeRaw = "", fracRaw = ""] = unsigned.split(".");
+  const whole = wholeRaw.replace(/\D/g, "") || "0";
+  const frac = fracRaw.replace(/\D/g, "").slice(0, decimals).padEnd(decimals, "0");
+  const digits = (whole + frac).replace(/^0+(?=\d)/, "") || "0";
+  return negative && digits !== "0" ? `-${digits}` : digits;
+}
+
 const usdFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",

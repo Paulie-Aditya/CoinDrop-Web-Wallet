@@ -1,5 +1,13 @@
 import { http } from "./http";
-import type { BalancesResponse, TransactionsResponse, TxFilter } from "./types";
+import type {
+  BalancesResponse,
+  DepositAddress,
+  TransactionsResponse,
+  TxFilter,
+  WithdrawConfirmResult,
+  WithdrawEstimate,
+  WithdrawEstimateInput,
+} from "./types";
 
 export async function fetchBalances(): Promise<BalancesResponse> {
   const { data } = await http.get<BalancesResponse>("/wallet/balances");
@@ -21,6 +29,27 @@ export async function fetchTransactions(
   if (query.cursor) params.cursor = query.cursor;
   const { data } = await http.get<TransactionsResponse>("/wallet/transactions", {
     params,
+  });
+  return data;
+}
+
+export async function fetchDepositAddress(symbol: string): Promise<DepositAddress> {
+  const { data } = await http.get<DepositAddress>(
+    `/wallet/deposit/${encodeURIComponent(symbol)}`,
+  );
+  return data;
+}
+
+export async function estimateWithdrawal(
+  input: WithdrawEstimateInput,
+): Promise<WithdrawEstimate> {
+  const { data } = await http.post<WithdrawEstimate>("/wallet/withdraw/estimate", input);
+  return data;
+}
+
+export async function confirmWithdrawal(token: string): Promise<WithdrawConfirmResult> {
+  const { data } = await http.post<WithdrawConfirmResult>("/wallet/withdraw/confirm", {
+    token,
   });
   return data;
 }

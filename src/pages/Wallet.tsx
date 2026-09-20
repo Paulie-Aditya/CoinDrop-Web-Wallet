@@ -1,26 +1,27 @@
+import { Link } from "react-router-dom";
 import { PageShell } from "../components/PageShell";
 import { Icon } from "../components/Icon";
 import { BalancesCard } from "../features/wallet/BalancesCard";
 import { ActivityCard } from "../features/wallet/ActivityCard";
 import styles from "./Wallet.module.css";
 
-const SOON = [
-  { label: "Send", icon: "arrowUpRight" as const },
-  { label: "Deposit", icon: "arrowDownLeft" as const },
-  { label: "Withdraw", icon: "external" as const },
-];
-
 export function Wallet() {
   return (
     <PageShell>
       <div className={styles.actions}>
-        {SOON.map((a) => (
-          <button key={a.label} className="btn btn--outline" disabled aria-disabled="true">
-            <Icon name={a.icon} size={16} />
-            {a.label}
-            <span className={styles.soon}>Soon</span>
-          </button>
-        ))}
+        <button className="btn btn--outline" disabled aria-disabled="true">
+          <Icon name="arrowUpRight" size={16} />
+          Send
+          <span className={styles.soon}>Soon</span>
+        </button>
+        <Link to="/wallet/deposit" className="btn btn--outline">
+          <Icon name="arrowDownLeft" size={16} />
+          Deposit
+        </Link>
+        <Link to="/wallet/withdraw" className="btn btn--outline">
+          <Icon name="external" size={16} />
+          Withdraw
+        </Link>
       </div>
 
       <div className={styles.stack}>

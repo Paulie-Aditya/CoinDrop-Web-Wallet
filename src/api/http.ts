@@ -20,8 +20,8 @@ export interface ApiError {
 export function toApiError(err: unknown): ApiError {
   if (axios.isAxiosError(err)) {
     const status = err.response?.status ?? null;
-    const data = err.response?.data as { message?: string } | undefined;
-    return { status, message: data?.message ?? err.message };
+    const data = err.response?.data as { detail?: string } | undefined;
+    return { status, message: data?.detail ?? err.message };
   }
   return { status: null, message: "Something went wrong" };
 }

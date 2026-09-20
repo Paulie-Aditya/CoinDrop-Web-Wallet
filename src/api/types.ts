@@ -62,3 +62,41 @@ export interface TransactionsResponse {
 }
 
 export type TxFilter = "all" | "received" | "sent";
+
+export interface DepositAddress {
+  symbol: string;
+  chainName: string;
+  address: string;
+  /** shared-hot-wallet coins (WAX, XRP, XLM, …) require this on every deposit */
+  memo: string | null;
+  /** XRP-style numeric tag; mutually exclusive with `memo` in practice */
+  destinationTag: string | null;
+}
+
+export interface WithdrawEstimateInput {
+  symbol: string;
+  toAddress: string;
+  /** smallest-unit integer string, same convention as balances/transactions —
+   *  convert the user's typed decimal amount with `parseUnits` first */
+  amount: string;
+  memo?: string;
+}
+
+export interface WithdrawEstimate {
+  /** opaque, single-use, expires after `expiresInSeconds` */
+  token: string;
+  currency: string;
+  toAddress: string;
+  memo: string | null;
+  /** all four amounts are smallest-unit integer strings — format with the
+   *  currency's `decimals` before displaying */
+  amount: string;
+  sendAmount: string;
+  platformFee: string;
+  gasFee: string;
+  expiresInSeconds: number;
+}
+
+export interface WithdrawConfirmResult {
+  status: "queued";
+}

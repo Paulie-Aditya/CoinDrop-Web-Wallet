@@ -65,7 +65,13 @@ The frontend expects these endpoints under `VITE_API_URL`. The mock layer in
 `src/api/mock/` implements the same shapes — keep them in sync.
 
 Ledger amounts are `DECIMAL(65,0)` **smallest-unit integers** (wei, sats, …),
-always sent as **strings**. The frontend formats them with `decimals`.
+always sent as **strings** — including every amount in the withdraw endpoints
+below (`amount`, `sendAmount`, `platformFee`, `gasFee`). The frontend converts
+with `decimals` (`parseUnits` going out, `formatUnits` coming back); never send
+or expect a human-decimal string like `"0.5"`.
+
+Errors are `{ "detail": "message" }` with an appropriate status code — the
+frontend reads `detail`, not `message`.
 
 ### `GET /auth/me`
 `200` → `{ "user": { "id": string, "username": string, "avatarUrl": string | null, "platform": "discord" } }`
@@ -127,16 +133,61 @@ a plain "Received"/"Sent". `counterparty` is the other user's `username` (resolv
 Deposits and withdrawals live in `platform_fees` / `withdrawal_queue`, not
 `transactions` — fold them in with a `UNION` when you want them in the feed.
 
+### `GET /wallet/deposit/<symbol>`
+Generates a wallet on first request, returns the same one after. `404` (with a
+`detail`) for an unsupported symbol.
+
+```jsonc
+{
+  "symbol": "BC3",
+  "chainName": "BitcoinIII",
+  "address": "1MdFA8pWRV3DqE6yNaAo7LNyrrrXsUbc5K",
+  "memo": null,              // set for shared-hot-wallet coins (WAX, XRP, XLM, …)
+  "destinationTag": null     // XRP-style numeric tag; mutually exclusive with memo
+}
+```
+When `memo`/`destinationTag` is set, the frontend shows it as a hard requirement
+right under the address — don't omit it for coins that need it.
+
+### `POST /wallet/withdraw/estimate`
+Body: `{ "symbol": "BC3", "toAddress": "...", "amount": "500000000", "memo": null }`
+— **`amount` is a smallest-unit integer string**, same as everywhere else (5 BC3
+at 8 decimals is `"500000000"`, not `"5"`). No side effects.
+
+```jsonc
+{
+  "token": "<opaque, single-use>",
+  "currency": "BC3",
+  "toAddress": "...",
+  "memo": null,
+  "amount": "500000000",
+  "sendAmount": "497490000",
+  "platformFee": "2500000",
+  "gasFee": "10000",
+  "expiresInSeconds": 30
+}
+```
+`400` for a bad amount (non-positive, exceeds balance, or too small to clear
+fees) — `detail` carries the reason and the frontend surfaces it verbatim.
+
+### `POST /wallet/withdraw/confirm`
+Body: `{ "token": "..." }` → `{ "status": "queued" }`. Deducts the balance and
+hands off to the withdrawal worker — irreversible. `400` if the token is
+unknown, already used, or its 30-second window has passed.
+
 ## Layout
 
 ```
 src/
   api/            axios instance, endpoint fns, types, and the mock backend
+                  (mock covers auth + balances/transactions only — deposit and
+                  withdraw always hit the real backend)
   app/            router + auth gate
-  components/     Button, CoinLoader, CoinChip, PageShell, …
+  components/     Button, CoinLoader, CoinChip, CopyButton, PageShell, …
   features/
     auth/         useSession, useLogout
-    wallet/       useBalances, useTransactions, BalancesCard, ActivityCard
-  lib/            formatUnits / formatUsd / relativeTime, query client
-  pages/          Landing, Login, AuthCallback, Wallet, NotFound
+    wallet/       useBalances, useTransactions, useDeposit, useWithdraw,
+                  BalancesCard, ActivityCard
+  lib/            formatUnits/parseUnits, formatUsd, relativeTime, query client
+  pages/          Landing, Login, AuthCallback, Wallet, Deposit, Withdraw, NotFound
 ```

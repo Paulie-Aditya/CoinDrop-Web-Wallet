@@ -1,9 +1,4 @@
-import type {
-  Balance,
-  BalancesResponse,
-  SessionUser,
-  Transaction,
-} from "../types";
+import type { Balance, BalancesResponse, SessionUser, Transaction } from "../types";
 
 export const MOCK_USER: SessionUser = {
   id: "308453391777202176",

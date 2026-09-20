@@ -1,0 +1,192 @@
+/* Shared by Deposit.tsx and Withdraw.tsx */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-200);
+  margin-bottom: 1.25rem;
+}
+.back:hover {
+  color: var(--ink);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin-top: 0.4rem;
+  max-width: 40rem;
+  color: var(--ink-200);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.card {
+  margin-top: 1.5rem;
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-200);
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.input::placeholder {
+  color: var(--ink-500);
+}
+.select option {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--ink-300);
+}
+
+.error {
+  font-size: 0.82rem;
+  color: var(--neg);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+
+/* address / memo display */
+.addressBlock {
+  margin-top: 1.25rem;
+}
+
+.addressRow {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.address {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+
+.warning {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  background: rgba(250, 200, 0, 0.1);
+  border: 1px solid rgba(250, 200, 0, 0.35);
+  border-radius: var(--r);
+  color: var(--gold-bright);
+}
+.warning > svg {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+.warningTitle {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.warningBody {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  color: var(--ink-200);
+  line-height: 1.5;
+}
+
+/* fee breakdown */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.88rem;
+}
+.breakdownRow[data-emphasis="true"] {
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.breakdownLabel {
+  color: var(--ink-200);
+}
+.breakdownRow[data-emphasis="true"] .breakdownLabel {
+  color: var(--ink);
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--ink-300);
+}
+.countdown[data-expired="true"] {
+  color: var(--neg);
+}
+
+.doneWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem;
+}

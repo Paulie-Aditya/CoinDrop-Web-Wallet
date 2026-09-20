@@ -13,6 +13,9 @@ const paths: Record<string, string> = {
   chevronDown: "m6 9 6 6 6-6",
   refresh: "M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5",
   wallet: "M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2M21 12h-6a2 2 0 0 0 0 4h6v-4Z",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+  alertTriangle:
+    "M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z M12 9v4 M12 17h.01",
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

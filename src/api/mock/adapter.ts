@@ -3,7 +3,9 @@ import { MOCK_BALANCES, MOCK_TRANSACTIONS, MOCK_USER } from "./data";
 import type { Transaction, TransactionsResponse } from "../types";
 
 /* A tiny in-browser stand-in for the wallet backend. Auth state lives in
- * sessionStorage so a page reload keeps you logged in but a new tab doesn't. */
+ * sessionStorage so a page reload keeps you logged in but a new tab doesn't.
+ * Covers auth + balances/transactions only — deposit/withdraw go straight to
+ * the real backend (VITE_USE_MOCK doesn't apply to those screens). */
 
 const SESSION_KEY = "coindrop.mock.session";
 
@@ -65,16 +67,16 @@ function ok(data: unknown, config: Parameters<AxiosAdapter>[0]): AxiosResponse {
   };
 }
 
-function fail(status: number, message: string, config: Parameters<AxiosAdapter>[0]): never {
+function fail(status: number, detail: string, config: Parameters<AxiosAdapter>[0]): never {
   throw new AxiosError(
-    message,
+    detail,
     status === 401 ? "ERR_UNAUTHENTICATED" : "ERR_BAD_RESPONSE",
     config,
     {},
     {
-      data: { message },
+      data: { detail },
       status,
-      statusText: message,
+      statusText: detail,
       headers: {},
       config,
     } as AxiosResponse,
