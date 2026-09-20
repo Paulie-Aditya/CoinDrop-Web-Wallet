@@ -94,6 +94,12 @@ export interface WithdrawEstimate {
   sendAmount: string;
   platformFee: string;
   gasFee: string;
+  /** decimal-string USD value of the matching amount above, priced off one
+   *  snapshot so they're mutually consistent; null (not "0") if uncached */
+  amountUsd: string | null;
+  sendAmountUsd: string | null;
+  platformFeeUsd: string | null;
+  gasFeeUsd: string | null;
   expiresInSeconds: number;
 }
 

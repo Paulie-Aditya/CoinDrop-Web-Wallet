@@ -5,7 +5,7 @@ import { Icon } from "../components/Icon";
 import { Button } from "../components/Button";
 import { StateBlock } from "../components/StateBlock";
 import { toApiError } from "../api/http";
-import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
+import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
 import { useBalances } from "../features/wallet/useBalances";
 import { useWithdrawConfirm, useWithdrawEstimate } from "../features/wallet/useWithdraw";
 import type { WithdrawEstimate } from "../api/types";
@@ -238,26 +238,46 @@ export function Withdraw() {
           <div className={styles.breakdown}>
             <div className={styles.breakdownRow}>
               <span className={styles.breakdownLabel}>Amount</span>
-              <span className="mono">
-                {formatUnits(estimate.amount, estimateDecimals)} {estimate.currency}
+              <span className={styles.breakdownAmount}>
+                <span className="mono">
+                  {formatUnits(estimate.amount, estimateDecimals)} {estimate.currency}
+                </span>
+                <span className={`${styles.breakdownUsd} mono`}>
+                  {formatUsd(estimate.amountUsd)}
+                </span>
               </span>
             </div>
             <div className={styles.breakdownRow}>
               <span className={styles.breakdownLabel}>Platform fee</span>
-              <span className="mono">
-                −{formatUnits(estimate.platformFee, estimateDecimals)} {estimate.currency}
+              <span className={styles.breakdownAmount}>
+                <span className="mono">
+                  −{formatUnits(estimate.platformFee, estimateDecimals)} {estimate.currency}
+                </span>
+                <span className={`${styles.breakdownUsd} mono`}>
+                  {formatUsd(estimate.platformFeeUsd)}
+                </span>
               </span>
             </div>
             <div className={styles.breakdownRow}>
               <span className={styles.breakdownLabel}>Network fee</span>
-              <span className="mono">
-                −{formatUnits(estimate.gasFee, estimateDecimals)} {estimate.currency}
+              <span className={styles.breakdownAmount}>
+                <span className="mono">
+                  −{formatUnits(estimate.gasFee, estimateDecimals)} {estimate.currency}
+                </span>
+                <span className={`${styles.breakdownUsd} mono`}>
+                  {formatUsd(estimate.gasFeeUsd)}
+                </span>
               </span>
             </div>
             <div className={styles.breakdownRow} data-emphasis="true">
               <span className={styles.breakdownLabel}>They'll receive</span>
-              <span className="mono">
-                {formatUnits(estimate.sendAmount, estimateDecimals)} {estimate.currency}
+              <span className={styles.breakdownAmount}>
+                <span className="mono">
+                  {formatUnits(estimate.sendAmount, estimateDecimals)} {estimate.currency}
+                </span>
+                <span className={`${styles.breakdownUsd} mono`}>
+                  {formatUsd(estimate.sendAmountUsd)}
+                </span>
               </span>
             </div>
           </div>

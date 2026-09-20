@@ -164,9 +164,15 @@ at 8 decimals is `"500000000"`, not `"5"`). No side effects.
   "sendAmount": "497490000",
   "platformFee": "2500000",
   "gasFee": "10000",
+  "amountUsd": "185.20",       // decimal string; null (not "0") if uncached
+  "sendAmountUsd": "184.28",
+  "platformFeeUsd": "0.93",
+  "gasFeeUsd": "0.004",
   "expiresInSeconds": 30
 }
 ```
+The four `*Usd` fields are priced off one snapshot so they stay consistent with
+each other (and roughly with `/wallet/balances`, modulo price-cache staleness).
 `400` for a bad amount (non-positive, exceeds balance, or too small to clear
 fees) — `detail` carries the reason and the frontend surfaces it verbatim.
 
