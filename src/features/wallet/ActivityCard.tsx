@@ -29,7 +29,7 @@ const KIND_LABEL: Record<TxKind, string> = {
 };
 
 function describe(tx: Transaction): string {
-  const kind = KIND_LABEL[tx.kind];
+  const kind = KIND_LABEL[tx.kind] ?? (tx.direction === "in" ? "Received" : "Sent");
   if (!tx.counterparty) return kind;
   return `${kind} ${tx.direction === "in" ? "from" : "to"} ${tx.counterparty}`;
 }

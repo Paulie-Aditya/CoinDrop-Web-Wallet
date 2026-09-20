@@ -33,7 +33,8 @@ export function startLogin(provider: AuthPlatform, redirectPath = "/auth/callbac
     window.location.assign(redirectPath);
     return;
   }
-  const url = new URL(`${API_URL}/auth/${provider}`);
+  // API_URL is "" for the same-origin (nginx-proxied) deploy, or a full host.
+  const url = new URL(`${API_URL}/auth/${provider}`, window.location.origin);
   url.searchParams.set("redirect", window.location.origin + redirectPath);
   window.location.assign(url.toString());
 }

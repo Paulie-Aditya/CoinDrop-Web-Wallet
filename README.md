@@ -27,6 +27,23 @@ VITE_USE_MOCK="false"
 
 Other scripts: `npm run build`, `npm run lint`, `npm run preview`.
 
+`vite build` loads `.env.production`, which forces `VITE_USE_MOCK=false` — the mock
+layer can't ship. Set `VITE_API_URL` in the host's build environment.
+
+## Deployment
+
+**`wallet.coindrop.cc`** on Vercel + a **Flask** backend on `api.coindrop.cc`.
+Full runbook, cookie/CORS config, and a Flask route skeleton are in
+[`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+
+- Vercel builds this repo; `vercel.json` handles the SPA fallback. Set
+  `VITE_API_URL=https://api.coindrop.cc` as a Vercel env var.
+- Both hosts are under `coindrop.cc`, so the session cookie is same-site
+  (`Domain=.coindrop.cc; SameSite=Lax; Secure; HttpOnly`) — Flask just needs
+  `flask-cors` with `supports_credentials=True` and the exact frontend origin.
+- Flask reads CoinDrop's MySQL and resolves the Discord id with the bot's
+  `core_ops.resolve_or_create_user` / `resolve_canonical_id`.
+
 ## How auth works
 
 Cookie session — the frontend never touches a token.
@@ -102,6 +119,13 @@ Query params (all optional): `direction` = `received` | `sent`, `currency` = sym
   "nextCursor": "8"                // null when there are no more pages
 }
 ```
+
+`cursor` is opaque to the frontend — a stringified `offset` is fine.
+`kind` may be more than the `transactions` table records; unknown values render as
+a plain "Received"/"Sent". `counterparty` is the other user's `username` (resolve
+`from_user`/`to_user` against `users`), or `null` for bot/system drop payouts.
+Deposits and withdrawals live in `platform_fees` / `withdrawal_queue`, not
+`transactions` — fold them in with a `UNION` when you want them in the feed.
 
 ## Layout
 
