@@ -125,13 +125,7 @@
   font-size: 0.8rem;
   color: var(--ink-300);
 }
-
-.footerLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.footerLinks a:hover {
+.footer a:hover {
   color: var(--ink);
 }
 

@@ -270,7 +270,7 @@ export function Withdraw() {
               </span>
             </div>
             <div className={styles.breakdownRow} data-emphasis="true">
-              <span className={styles.breakdownLabel}>They'll receive</span>
+              <span className={styles.breakdownLabel}>You'll receive</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
                   {formatUnits(estimate.sendAmount, estimateDecimals)} {estimate.currency}

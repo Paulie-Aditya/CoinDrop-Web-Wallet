@@ -52,7 +52,7 @@ FRONTEND = "https://wallet.coindrop.cc"
 DISCORD_REDIRECT_URI = "https://backend.coindrop.cc/auth/discord/callback"
 ```
 
-Routes (shapes → `../README.md`):
+Routes (shapes → `../docs/API.md`):
 
 | Route | Does |
 |---|---|

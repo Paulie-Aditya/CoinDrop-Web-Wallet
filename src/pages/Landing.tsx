@@ -68,12 +68,9 @@ export function Landing() {
 
       <footer className={styles.footer}>
         <span>© 2026 CoinDrop</span>
-        <span className={styles.footerLinks}>
-          <a href="https://coindrop.cc" target="_blank" rel="noreferrer">
-            coindrop.cc
-          </a>
-          <span>0% tips · 0.5% deposits & withdrawals</span>
-        </span>
+        <a href="https://coindrop.cc" target="_blank" rel="noreferrer">
+          coindrop.cc
+        </a>
       </footer>
     </div>
   );
