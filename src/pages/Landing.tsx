@@ -6,8 +6,8 @@ import styles from "./Landing.module.css";
 
 const SEEN = [
   ["Balances", "Every coin you hold, with its live USD value and a running total."],
-  ["Activity", "Tips in and out, airdrops, raffles and drop-game wins as they land."],
-  ["History", "Deposits, withdrawals and swaps — filterable by coin and direction."],
+  ["Deposit & withdraw", "Move coins in from anywhere, or send them out to an external address."],
+  ["Activity", "Every tip, drop, deposit and withdrawal, filterable by coin and direction."],
 ];
 
 export function Landing() {
@@ -25,11 +25,12 @@ export function Landing() {
         <div className={styles.copy}>
           <p className="eyebrow">CoinDrop Wallet</p>
           <h1 className={styles.headline}>
-            Every coin you've been tipped, in one place.
+            Every coin you hold, in one place.
           </h1>
           <p className={styles.sub}>
             Log in with the account you already use with the bot. See your
-            balances and every tip, drop and withdrawal — the moment they happen.
+            balances, deposit or withdraw any coin, and track every tip and
+            drop as it happens.
           </p>
           <div className={styles.actions}>
             <Link to="/login" className="btn btn--primary">

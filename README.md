@@ -1,9 +1,9 @@
 # CoinDrop Wallet (web)
 
 The web companion for the [CoinDrop](https://coindrop.cc) tipping bot. A logged-in
-user sees the coins they hold and every tip, drop, deposit and withdrawal that's
-moved through their account. **View-only for now** — sending to other usernames
-comes later.
+user sees the coins they hold, every tip and drop that's moved through their
+account, and can deposit or withdraw directly. **Sending to other usernames
+comes later** — everything else is live.
 
 Stack: React 19 + Vite + TypeScript, React Router, TanStack Query, axios. No UI
 framework — the components and design tokens are local (`src/index.css`).
