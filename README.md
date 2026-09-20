@@ -32,12 +32,12 @@ layer can't ship. Set `VITE_API_URL` in the host's build environment.
 
 ## Deployment
 
-**`wallet.coindrop.cc`** on Vercel + a **Flask** backend on `api.coindrop.cc`.
+**`wallet.coindrop.cc`** on Vercel + a **Flask** backend on `backend.coindrop.cc`.
 Full runbook, cookie/CORS config, and a Flask route skeleton are in
 [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
 
 - Vercel builds this repo; `vercel.json` handles the SPA fallback. Set
-  `VITE_API_URL=https://api.coindrop.cc` as a Vercel env var.
+  `VITE_API_URL=https://backend.coindrop.cc` as a Vercel env var.
 - Both hosts are under `coindrop.cc`, so the session cookie is same-site
   (`Domain=.coindrop.cc; SameSite=Lax; Secure; HttpOnly`) — Flask just needs
   `flask-cors` with `supports_credentials=True` and the exact frontend origin.

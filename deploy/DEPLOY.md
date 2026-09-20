@@ -1,7 +1,7 @@
 # Deploying — Vercel (frontend) + Flask (backend)
 
 ```
-  wallet.coindrop.cc            api.coindrop.cc
+  wallet.coindrop.cc            backend.coindrop.cc
   ┌───────────────────┐         ┌──────────────────────┐
   │  this SPA (Vercel) │  fetch  │  Flask               │
   │  withCredentials   │────────▶│  Discord OAuth        │
@@ -20,7 +20,7 @@ Both hosts are subdomains of `coindrop.cc`, so the session cookie is **same-site
 - Import the repo. Vercel auto-detects Vite → build `npm run build`, output `dist/`.
 - `vercel.json` (committed) rewrites all paths to `index.html` for client routing.
 - **Env var** (Settings → Environment Variables, Production):
-  `VITE_API_URL = https://api.coindrop.cc`
+  `VITE_API_URL = https://backend.coindrop.cc`
 - Add the domain `wallet.coindrop.cc` (Settings → Domains); Vercel gives you the
   DNS record to add.
 
@@ -28,7 +28,7 @@ That's it — every push to `main` deploys.
 
 ## 2. Flask backend
 
-Host it anywhere, but give it a **`coindrop.cc` subdomain** (`api.coindrop.cc`) so
+Host it anywhere, but give it a **`coindrop.cc` subdomain** (`backend.coindrop.cc`) so
 the cookie stays same-site. Needs read access to CoinDrop's MySQL.
 
 Config:
@@ -49,7 +49,7 @@ CORS(app,
      supports_credentials=True)
 
 FRONTEND = "https://wallet.coindrop.cc"
-DISCORD_REDIRECT_URI = "https://api.coindrop.cc/auth/discord/callback"
+DISCORD_REDIRECT_URI = "https://backend.coindrop.cc/auth/discord/callback"
 ```
 
 Routes (shapes → `../README.md`):
@@ -131,7 +131,7 @@ def _401(e):
     return jsonify(detail=e.description), 401
 ```
 
-- Discord OAuth app → **Redirects**: add `https://api.coindrop.cc/auth/discord/callback`.
+- Discord OAuth app → **Redirects**: add `https://backend.coindrop.cc/auth/discord/callback`.
 - `avatar_url`: `https://cdn.discordapp.com/avatars/{id}/{hash}.png`, or return `null`.
 - Amounts: pass the raw `balances.balance` string straight through; the frontend
   divides by `10**decimals`.
@@ -140,9 +140,9 @@ def _401(e):
 
 ## 3. Go-live checklist
 
-- [ ] Flask deployed at `https://api.coindrop.cc`, `curl -i .../auth/me` → 401 `{"detail":...}`
+- [ ] Flask deployed at `https://backend.coindrop.cc`, `curl -i .../auth/me` → 401 `{"detail":...}`
 - [ ] Discord app redirect URI added
-- [ ] Vercel project: domain `wallet.coindrop.cc`, env `VITE_API_URL=https://api.coindrop.cc`
+- [ ] Vercel project: domain `wallet.coindrop.cc`, env `VITE_API_URL=https://backend.coindrop.cc`
 - [ ] visit `https://wallet.coindrop.cc` → Login → Discord → back on `/wallet` with real balances
 - [ ] `document.cookie` empty in devtools (cookie is HttpOnly) but requests carry it → Network tab shows `cookie:` on `/auth/me`
 - [ ] hard-refresh `/wallet` → still loads (SPA rewrite working)

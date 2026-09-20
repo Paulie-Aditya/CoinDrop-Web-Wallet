@@ -6,7 +6,7 @@ export const API_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 export const USE_MOCK =
   import.meta.env.VITE_USE_MOCK === "true" && !import.meta.env.PROD;
 
-// In production VITE_API_URL points at the Flask backend (e.g. https://api.coindrop.cc);
+// In production VITE_API_URL points at the Flask backend (e.g. https://backend.coindrop.cc);
 // an empty value falls back to same-origin relative requests.
 if (import.meta.env.PROD && import.meta.env.VITE_USE_MOCK === "true") {
   console.warn("[coindrop] VITE_USE_MOCK is ignored in production builds.");
