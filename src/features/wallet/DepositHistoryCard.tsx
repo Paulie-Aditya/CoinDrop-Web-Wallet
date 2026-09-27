@@ -23,10 +23,6 @@ export function DepositHistoryCard() {
       <header className={styles.head}>
         <div>
           <p className="eyebrow">Deposit history</p>
-          <p className={styles.rowMeta} style={{ marginTop: "0.3rem", maxWidth: "26rem" }}>
-            Only shows deposits since notifications went live — earlier ones won't
-            appear here.
-          </p>
         </div>
         {currencyOptions.length > 0 && (
           <div className={styles.filters}>
