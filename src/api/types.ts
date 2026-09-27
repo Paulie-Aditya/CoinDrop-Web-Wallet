@@ -131,20 +131,23 @@ export interface WithdrawStatus {
   explorerUrl: string | null;
 }
 
-/** Currently deposit-only ("future scope" from the bot's own notification
- *  system now lands here too) — kept open in case other kinds show up later. */
+/** Currently deposit-only — kept open in case other kinds show up later. */
+export type NotificationKind = "deposit";
+
 export interface WalletNotification {
-  id: string;
+  id: number;
+  kind: NotificationKind;
   symbol: string;
-  decimals: number;
-  /** smallest-unit integer string, same convention as everywhere else */
+  /** smallest-unit integer string — decimals aren't included here, cross-
+   *  reference the symbol against /wallet/balances */
   amount: string;
   usdValue: string | null;
+  /** null for coins with no sweep tx (e.g. WAX/XRP deposits) */
   txHash: string | null;
   chainName: string | null;
   seen: boolean;
   /** ISO 8601 */
-  timestamp: string;
+  createdAt: string;
 }
 
 export interface NotificationsResponse {

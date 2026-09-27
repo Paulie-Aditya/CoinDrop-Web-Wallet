@@ -175,39 +175,44 @@ Session-authenticated, deposit notifications only for now (the bot's own
 Discord/Telegram DMs are unaffected — this is a third channel, not a
 replacement). Same cursor-pagination convention as `/wallet/transactions`.
 
-Query params (all optional): `cursor` = opaque string from a previous
-response, `limit`.
+Query params (all optional): `unseenOnly=1` (only unread — the cheap way to
+poll just the badge count), `cursor` = opaque string from a previous
+response, `limit` (default 25, capped 100).
 
 ```jsonc
 {
   "notifications": [
     {
-      "id": "1",
-      "symbol": "LTC",
-      "decimals": 8,
-      "amount": "150000000",        // smallest-unit integer string
-      "usdValue": "12.30",          // or null if uncached
-      "txHash": "3b1e...",
-      "chainName": "Litecoin",
+      "id": 1,                      // number, not a string
+      "kind": "deposit",
+      "symbol": "SOL",
+      "amount": "5000000",          // smallest-unit integer string
+      "usdValue": "0.55",           // null if uncached
+      "txHash": "abc123...",        // null for coins with no sweep tx (WAX/XRP)
+      "chainName": "Solana",        // can be null
       "seen": false,
-      "timestamp": "2026-09-28T12:00:00.000Z"
+      "createdAt": "2026-09-27T19:07:24Z"
     }
   ],
-  "nextCursor": "8",                // null when there are no more pages
-  "unseenCount": 1
+  "unseenCount": 1,
+  "nextCursor": null
 }
 ```
 
-`unseenCount` is a running total, not scoped to the current page — the
-frontend uses it for the notification-bell badge without needing to load the
-list. Fed by the bot's own `monitor_ws.add_to_db`, which POSTs to
-`/internal/deposit` (bot-only, its own `x-internal-secret`, separate from any
-other internal secret this API uses) right after a deposit credit commits;
-that write resolves the user through `resolve_canonical_id` so a deposit to a
+**No `decimals` field** — resolve it by cross-referencing the symbol against
+`/wallet/balances`. `unseenCount` is a total regardless of pagination, so the
+bell badge doesn't need to load the list — poll
+`GET /wallet/notifications?unseenOnly=1&limit=1` every 15–30s for that, and
+only fetch the full list when the panel actually opens.
+
+Fed by the bot's own `monitor_ws.add_to_db`, which POSTs to `/internal/deposit`
+(bot-only, its own `x-internal-secret`, separate from any other internal
+secret this API uses) right after a deposit credit commits; that write
+resolves the user through `resolve_canonical_id` so a deposit to a
 since-merged account still lands on the right person.
 
 ## `POST /wallet/notifications/<id>/seen`
 
-No body. `200`/`204`. Marks one notification read; the frontend calls this
-when the user clicks a row, not in bulk. Scoped to the caller's own rows, same
-as the withdrawal-status endpoint.
+No body. Always `200 {"status": "seen"}` — safe to call on an already-seen or
+invalid id, silent no-op, never errors. The frontend calls this when the user
+clicks a row, not in bulk.

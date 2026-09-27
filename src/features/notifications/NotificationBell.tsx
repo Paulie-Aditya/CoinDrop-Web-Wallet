@@ -4,17 +4,28 @@ import { CoinLoader } from "../../components/CoinLoader";
 import { StateBlock } from "../../components/StateBlock";
 import { toApiError } from "../../api/http";
 import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
-import { useMarkNotificationSeen, useNotifications } from "./useNotifications";
+import { useBalances } from "../wallet/useBalances";
+import { useMarkNotificationSeen, useNotificationsList, useUnseenCount } from "./useNotifications";
 import styles from "./NotificationBell.module.css";
+
+const KIND_LABEL: Record<string, string> = {
+  deposit: "Deposit received",
+};
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const query = useNotifications();
+  const unseenCount = useUnseenCount();
+  const query = useNotificationsList(open);
   const markSeen = useMarkNotificationSeen();
+  const balances = useBalances();
 
-  const unseenCount = query.data?.pages[0]?.unseenCount ?? 0;
+  const decimalsBySymbol = new Map(
+    (balances.data?.balances ?? []).map((b) => [b.symbol, b.decimals]),
+  );
+
+  const badgeCount = unseenCount.data ?? 0;
   const rows = query.data?.pages.flatMap((p) => p.notifications) ?? [];
 
   useEffect(() => {
@@ -39,13 +50,13 @@ export function NotificationBell() {
         type="button"
         className="btn btn--ghost btn--sm"
         onClick={() => setOpen((v) => !v)}
-        aria-label={unseenCount > 0 ? `${unseenCount} unread notifications` : "Notifications"}
+        aria-label={badgeCount > 0 ? `${badgeCount} unread notifications` : "Notifications"}
         aria-expanded={open}
       >
         <span className={styles.bellWrap}>
           <Icon name="bell" size={17} />
-          {unseenCount > 0 && (
-            <span className={styles.badge}>{unseenCount > 9 ? "9+" : unseenCount}</span>
+          {badgeCount > 0 && (
+            <span className={styles.badge}>{badgeCount > 9 ? "9+" : badgeCount}</span>
           )}
         </span>
       </button>
@@ -74,29 +85,34 @@ export function NotificationBell() {
             ) : (
               <>
                 <ul className={styles.rows}>
-                  {rows.map((n) => (
-                    <li key={n.id} className={styles.row}>
-                      <button
-                        type="button"
-                        className={styles.rowButton}
-                        data-seen={n.seen}
-                        onClick={() => !n.seen && markSeen.mutate(n.id)}
-                      >
-                        <span className={styles.dot} aria-hidden="true" />
-                        <span className={styles.rowMain}>
-                          <span className={styles.rowTitle}>
-                            Deposit received — {formatUnits(n.amount, n.decimals)} {n.symbol}
+                  {rows.map((n) => {
+                    const decimals = decimalsBySymbol.get(n.symbol);
+                    const amount =
+                      decimals !== undefined ? `${formatUnits(n.amount, decimals)} ${n.symbol}` : n.symbol;
+                    return (
+                      <li key={n.id} className={styles.row}>
+                        <button
+                          type="button"
+                          className={styles.rowButton}
+                          data-seen={n.seen}
+                          onClick={() => !n.seen && markSeen.mutate(n.id)}
+                        >
+                          <span className={styles.dot} aria-hidden="true" />
+                          <span className={styles.rowMain}>
+                            <span className={styles.rowTitle}>
+                              {KIND_LABEL[n.kind] ?? n.kind} — {amount}
+                            </span>
+                            <span className={styles.rowMeta}>
+                              {n.usdValue ? `${formatUsd(n.usdValue)} · ` : ""}
+                              <time dateTime={n.createdAt} title={absoluteTime(n.createdAt)}>
+                                {relativeTime(n.createdAt)}
+                              </time>
+                            </span>
                           </span>
-                          <span className={styles.rowMeta}>
-                            {formatUsd(n.usdValue)} ·{" "}
-                            <time dateTime={n.timestamp} title={absoluteTime(n.timestamp)}>
-                              {relativeTime(n.timestamp)}
-                            </time>
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {query.hasNextPage && (

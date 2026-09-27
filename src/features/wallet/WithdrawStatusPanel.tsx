@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { CoinLoader } from "../../components/CoinLoader";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
+import { CopyButton } from "../../components/CopyButton";
 import { toApiError } from "../../api/http";
 import { queryClient } from "../../lib/queryClient";
 import { formatUnits, formatUsd } from "../../lib/format";
@@ -47,25 +48,61 @@ export function WithdrawStatusPanel({ id, decimals }: WithdrawStatusPanelProps) 
 
   if (data.status === "done") {
     return (
-      <div className={styles.doneWrap}>
-        <StateBlock title="Withdrawal complete">
-          {formatUnits(data.sendAmount, decimals)} {data.currency} (
-          {formatUsd(data.sendAmountUsd)}) sent to {data.toAddress}.
-        </StateBlock>
-        {data.explorerUrl && (
-          <a
-            className="btn btn--outline"
-            href={data.explorerUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View on explorer
-            <Icon name="external" size={15} />
-          </a>
-        )}
-        <Link to="/wallet" className="btn btn--primary">
-          Back to wallet
-        </Link>
+      <div>
+        <p className="eyebrow">Withdrawal complete</p>
+
+        <div className={styles.breakdown} style={{ marginTop: "0.9rem" }}>
+          <div className={styles.breakdownRow} data-emphasis="true">
+            <span className={styles.breakdownLabel}>Sent</span>
+            <span className={styles.breakdownAmount}>
+              <span className="mono">
+                {formatUnits(data.sendAmount, decimals)} {data.currency}
+              </span>
+              {data.sendAmountUsd && (
+                <span className={`${styles.breakdownUsd} mono`}>
+                  {formatUsd(data.sendAmountUsd)}
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.addressBlock}>
+          <p className={styles.label}>To</p>
+          <div className={styles.addressRow}>
+            <span className={`${styles.address} mono`}>{data.toAddress}</span>
+            <CopyButton value={data.toAddress} />
+          </div>
+
+          {data.txHash && (
+            <>
+              <p className={styles.label} style={{ marginTop: "0.75rem" }}>
+                Transaction
+              </p>
+              <div className={styles.addressRow}>
+                <span className={`${styles.address} mono`}>{data.txHash}</span>
+                <CopyButton value={data.txHash} />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className={styles.actions}>
+          {data.explorerUrl && (
+            <a
+              className="btn btn--outline"
+              href={data.explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View on explorer
+              <Icon name="external" size={15} />
+            </a>
+          )}
+          <Link to="/wallet" className="btn btn--primary">
+            Back to wallet
+          </Link>
+        </div>
       </div>
     );
   }
