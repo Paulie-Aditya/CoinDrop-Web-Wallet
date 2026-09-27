@@ -86,10 +86,11 @@ export interface WithdrawEstimate {
   /** opaque, single-use, expires after `expiresInSeconds` */
   token: string;
   currency: string;
+  decimals: number;
   toAddress: string;
   memo: string | null;
-  /** all four amounts are smallest-unit integer strings — format with the
-   *  currency's `decimals` before displaying */
+  /** all four amounts are smallest-unit integer strings — format with
+   *  `decimals` above before displaying */
   amount: string;
   sendAmount: string;
   platformFee: string;
@@ -115,6 +116,7 @@ export interface WithdrawStatus {
   id: string;
   status: WithdrawStatusValue;
   currency: string;
+  decimals: number;
   toAddress: string;
   memo: string | null;
   amount: string;
@@ -165,9 +167,10 @@ export interface DepositsResponse {
 }
 
 /** GET /wallet/withdraw (list) shares _serialize_withdrawal_row with
- *  GET /wallet/withdraw/<id>, so each row matches WithdrawStatus — plus a
- *  createdAt this endpoint is expected to add for a history view (not
- *  confirmed on the single-status lookup, so it's optional here). */
+ *  GET /wallet/withdraw/<id>, so each row matches WithdrawStatus (decimals
+ *  included, confirmed live 2026-09-28) — plus a createdAt this endpoint is
+ *  expected to add for a history view (not confirmed on the single-status
+ *  lookup, so it's optional here). */
 export interface WithdrawHistoryItem extends WithdrawStatus {
   createdAt?: string;
 }

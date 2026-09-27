@@ -5,7 +5,7 @@ import { Button } from "../../components/Button";
 import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
 import type { WithdrawStatusValue } from "../../api/types";
-import { useBalances, useDecimalsBySymbol } from "./useBalances";
+import { useBalances } from "./useBalances";
 import { useWithdrawHistory } from "./useHistory";
 import styles from "./cards.module.css";
 
@@ -36,7 +36,6 @@ export function WithdrawHistoryCard() {
 
   const balances = useBalances();
   const currencyOptions = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
-  const decimalsBySymbol = useDecimalsBySymbol();
 
   const query = useWithdrawHistory(currency, status);
   const rows = query.data?.pages.flatMap((p) => p.withdrawals) ?? [];
@@ -101,57 +100,50 @@ export function WithdrawHistoryCard() {
         ) : (
           <>
             <ul className={styles.rows}>
-              {rows.map((w) => {
-                const decimals = decimalsBySymbol.get(w.currency);
-                return (
-                  <li key={w.id} className={styles.row}>
-                    <span className={styles.dirIcon} data-dir="out" aria-hidden="true">
-                      <Icon name="arrowUpRight" size={16} />
+              {rows.map((w) => (
+                <li key={w.id} className={styles.row}>
+                  <span className={styles.dirIcon} data-dir="out" aria-hidden="true">
+                    <Icon name="arrowUpRight" size={16} />
+                  </span>
+                  <span className={styles.rowMain}>
+                    <span className={styles.rowTitle}>
+                      Withdrawal
+                      {w.explorerUrl && (
+                        <a
+                          href={w.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles.rowLink}
+                          aria-label="View on explorer"
+                        >
+                          <Icon name="external" size={13} />
+                        </a>
+                      )}
                     </span>
-                    <span className={styles.rowMain}>
-                      <span className={styles.rowTitle}>
-                        Withdrawal
-                        {w.explorerUrl && (
-                          <a
-                            href={w.explorerUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={styles.rowLink}
-                            aria-label="View on explorer"
-                          >
-                            <Icon name="external" size={13} />
-                          </a>
-                        )}
+                    <span className={styles.rowMeta}>
+                      <span style={{ color: STATUS_COLOR[w.status] }}>
+                        {STATUS_LABEL[w.status]}
                       </span>
-                      <span className={styles.rowMeta}>
-                        <span style={{ color: STATUS_COLOR[w.status] }}>
-                          {STATUS_LABEL[w.status]}
-                        </span>
-                        {w.createdAt && (
-                          <>
-                            {" · "}
-                            <time dateTime={w.createdAt} title={absoluteTime(w.createdAt)}>
-                              {relativeTime(w.createdAt)}
-                            </time>
-                          </>
-                        )}
-                      </span>
+                      {w.createdAt && (
+                        <>
+                          {" · "}
+                          <time dateTime={w.createdAt} title={absoluteTime(w.createdAt)}>
+                            {relativeTime(w.createdAt)}
+                          </time>
+                        </>
+                      )}
                     </span>
-                    <span className={styles.rowAmount}>
-                      <span className="mono" style={{ color: "var(--neg)" }}>
-                        −
-                        {decimals !== undefined
-                          ? formatUnits(w.sendAmount, decimals)
-                          : w.sendAmount}{" "}
-                        {w.currency}
-                      </span>
-                      <span className={`${styles.rowMeta} mono`}>
-                        {formatUsd(w.sendAmountUsd)}
-                      </span>
+                  </span>
+                  <span className={styles.rowAmount}>
+                    <span className="mono" style={{ color: "var(--neg)" }}>
+                      −{formatUnits(w.sendAmount, w.decimals)} {w.currency}
                     </span>
-                  </li>
-                );
-              })}
+                    <span className={`${styles.rowMeta} mono`}>
+                      {formatUsd(w.sendAmountUsd)}
+                    </span>
+                  </span>
+                </li>
+              ))}
             </ul>
 
             {query.hasNextPage ? (

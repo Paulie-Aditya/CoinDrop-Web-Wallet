@@ -40,9 +40,6 @@ export function Withdraw() {
   const [memo, setMemo] = useState("");
 
   const [estimate, setEstimate] = useState<WithdrawEstimate | null>(null);
-  // the estimate response only carries smallest-unit integers — decimals comes
-  // from the balance that was selected when the quote was requested
-  const [estimateDecimals, setEstimateDecimals] = useState(0);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
 
@@ -69,7 +66,6 @@ export function Withdraw() {
       {
         onSuccess: (data) => {
           setEstimate(data);
-          setEstimateDecimals(decimals);
           setExpiresAt(Date.now() + data.expiresInSeconds * 1000);
         },
       },
@@ -103,7 +99,7 @@ export function Withdraw() {
           Back to wallet
         </Link>
         <section className={`panel ${styles.card}`}>
-          <WithdrawStatusPanel id={withdrawalId} decimals={estimateDecimals} />
+          <WithdrawStatusPanel id={withdrawalId} />
         </section>
       </PageShell>
     );
@@ -233,7 +229,7 @@ export function Withdraw() {
               <span className={styles.breakdownLabel}>Amount</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
-                  {formatUnits(estimate.amount, estimateDecimals)} {estimate.currency}
+                  {formatUnits(estimate.amount, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
                   {formatUsd(estimate.amountUsd)}
@@ -244,7 +240,7 @@ export function Withdraw() {
               <span className={styles.breakdownLabel}>Platform fee</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
-                  −{formatUnits(estimate.platformFee, estimateDecimals)} {estimate.currency}
+                  −{formatUnits(estimate.platformFee, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
                   {formatUsd(estimate.platformFeeUsd)}
@@ -255,7 +251,7 @@ export function Withdraw() {
               <span className={styles.breakdownLabel}>Network fee</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
-                  −{formatUnits(estimate.gasFee, estimateDecimals)} {estimate.currency}
+                  −{formatUnits(estimate.gasFee, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
                   {formatUsd(estimate.gasFeeUsd)}
@@ -266,7 +262,7 @@ export function Withdraw() {
               <span className={styles.breakdownLabel}>You'll receive</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
-                  {formatUnits(estimate.sendAmount, estimateDecimals)} {estimate.currency}
+                  {formatUnits(estimate.sendAmount, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
                   {formatUsd(estimate.sendAmountUsd)}

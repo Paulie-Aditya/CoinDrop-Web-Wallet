@@ -17,10 +17,9 @@ const IN_FLIGHT_COPY: Record<string, string> = {
 
 interface WithdrawStatusPanelProps {
   id: string;
-  decimals: number;
 }
 
-export function WithdrawStatusPanel({ id, decimals }: WithdrawStatusPanelProps) {
+export function WithdrawStatusPanel({ id }: WithdrawStatusPanelProps) {
   const { data, isPending, isError, error, refetch } = useWithdrawStatus(id);
 
   useEffect(() => {
@@ -56,7 +55,7 @@ export function WithdrawStatusPanel({ id, decimals }: WithdrawStatusPanelProps) 
             <span className={styles.breakdownLabel}>Sent</span>
             <span className={styles.breakdownAmount}>
               <span className="mono">
-                {formatUnits(data.sendAmount, decimals)} {data.currency}
+                {formatUnits(data.sendAmount, data.decimals)} {data.currency}
               </span>
               {data.sendAmountUsd && (
                 <span className={`${styles.breakdownUsd} mono`}>

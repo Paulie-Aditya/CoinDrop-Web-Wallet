@@ -110,6 +110,7 @@ at 8 decimals is `"500000000"`, not `"5"`). No side effects.
 {
   "token": "<opaque, single-use>",
   "currency": "BC3",
+  "decimals": 8,
   "toAddress": "...",
   "memo": null,
   "amount": "500000000",
@@ -148,6 +149,7 @@ The frontend polls this every 4s until `status` reaches `done` or `failed`.
   "id": "112",
   "status": "done",             // queued | processing | done | failed
   "currency": "LTC",
+  "decimals": 8,
   "toAddress": "...",
   "memo": null,
   "amount": "150000000",
@@ -247,7 +249,7 @@ no historical backfill.** A user's real first deposit may not appear here even
 though it's in their balance; surface this in the UI, don't let it read as a
 bug.
 
-## `GET /wallet/withdraw` *(list — shapes inferred, not yet confirmed live)*
+## `GET /wallet/withdraw` *(list — createdAt still unconfirmed, see below)*
 
 Withdrawal history, **all** of a user's `withdrawal_queue` rows regardless of
 `origin_platform` (Discord/Telegram-originated withdrawals show up here too).
@@ -256,9 +258,10 @@ has always stored the real `send_amount`. Query params (all optional):
 `currency`, `status` (`queued`|`processing`|`done`|`failed`), `cursor`, `limit`.
 
 Shares `_serialize_withdrawal_row` with `GET /wallet/withdraw/<id>`, so each
-row is presumed to match `WithdrawStatus` exactly, plus (unconfirmed) a
-`createdAt` a history list would need that the single-status lookup never
-mentioned:
+row matches `WithdrawStatus` (including `decimals` — confirmed live
+2026-09-28: ETH returns `18`, LTC returns `8`, matching `/wallet/balances`),
+plus (unconfirmed) a `createdAt` a history list would need that the
+single-status lookup never mentioned:
 
 ```jsonc
 {
@@ -267,6 +270,7 @@ mentioned:
       "id": "112",
       "status": "done",
       "currency": "LTC",
+      "decimals": 8,
       "toAddress": "...",
       "memo": null,
       "amount": "150000000",
