@@ -216,3 +216,76 @@ since-merged account still lands on the right person.
 No body. Always `200 {"status": "seen"}` — safe to call on an already-seen or
 invalid id, silent no-op, never errors. The frontend calls this when the user
 clicks a row, not in bulk.
+
+## `GET /wallet/deposits` *(shapes below are inferred, not yet confirmed live — prod 404s on this route as of 2026-09-28)*
+
+Deposit history. Query params (all optional): `currency`, `cursor`, `limit`.
+Reads the same `wallet_notifications` table as `/wallet/notifications`, so
+each row is presumed to match that shape exactly:
+
+```jsonc
+{
+  "deposits": [
+    {
+      "id": 1,
+      "kind": "deposit",
+      "symbol": "SOL",
+      "amount": "5000000",       // smallest-unit integer string, no decimals field
+      "usdValue": "0.55",        // or null
+      "txHash": "abc123...",     // or null (WAX/XRP have no sweep tx)
+      "chainName": "Solana",     // or null
+      "seen": false,
+      "createdAt": "2026-09-27T19:07:24Z"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+**Only has data from whenever deposit notifications started landing — there is
+no historical backfill.** A user's real first deposit may not appear here even
+though it's in their balance; surface this in the UI, don't let it read as a
+bug.
+
+## `GET /wallet/withdraw` *(list — shapes inferred, not yet confirmed live)*
+
+Withdrawal history, **all** of a user's `withdrawal_queue` rows regardless of
+`origin_platform` (Discord/Telegram-originated withdrawals show up here too).
+Complete from day one — no backfill gap like deposits, since `withdrawal_queue`
+has always stored the real `send_amount`. Query params (all optional):
+`currency`, `status` (`queued`|`processing`|`done`|`failed`), `cursor`, `limit`.
+
+Shares `_serialize_withdrawal_row` with `GET /wallet/withdraw/<id>`, so each
+row is presumed to match `WithdrawStatus` exactly, plus (unconfirmed) a
+`createdAt` a history list would need that the single-status lookup never
+mentioned:
+
+```jsonc
+{
+  "withdrawals": [
+    {
+      "id": "112",
+      "status": "done",
+      "currency": "LTC",
+      "toAddress": "...",
+      "memo": null,
+      "amount": "150000000",
+      "sendAmount": "148500000",
+      "platformFee": "750000",
+      "gasFee": "750000",
+      "amountUsd": "12.30",
+      "sendAmountUsd": "12.18",
+      "platformFeeUsd": "0.06",
+      "gasFeeUsd": "0.06",
+      "txHash": "3b1e...",
+      "explorerUrl": "https://...",
+      "createdAt": "2026-09-27T19:07:24Z"  // unconfirmed field
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+If `createdAt` isn't actually present, the frontend just omits the relative
+timestamp per row rather than breaking — but it's worth confirming, since a
+history list with no dates at all is a real UX gap.

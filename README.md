@@ -15,6 +15,9 @@ from a browser instead of Discord commands.
   quote before anything actually moves, then live status until it's done
 - **Notifications** — a bell in the header for deposits landing on your
   account, independent of the bot's own Discord/Telegram DMs
+- **History** — dedicated deposit and withdrawal history, separate from the
+  combined activity feed (deposit history starts from when notifications went
+  live; withdrawal history is complete from day one)
 - **Login** — Discord today; Telegram and Google are already built into the
   UI, waiting on their backend routes
 

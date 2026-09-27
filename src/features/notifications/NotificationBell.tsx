@@ -4,7 +4,7 @@ import { CoinLoader } from "../../components/CoinLoader";
 import { StateBlock } from "../../components/StateBlock";
 import { toApiError } from "../../api/http";
 import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
-import { useBalances } from "../wallet/useBalances";
+import { useDecimalsBySymbol } from "../wallet/useBalances";
 import { useMarkNotificationSeen, useNotificationsList, useUnseenCount } from "./useNotifications";
 import styles from "./NotificationBell.module.css";
 
@@ -19,11 +19,7 @@ export function NotificationBell() {
   const unseenCount = useUnseenCount();
   const query = useNotificationsList(open);
   const markSeen = useMarkNotificationSeen();
-  const balances = useBalances();
-
-  const decimalsBySymbol = new Map(
-    (balances.data?.balances ?? []).map((b) => [b.symbol, b.decimals]),
-  );
+  const decimalsBySymbol = useDecimalsBySymbol();
 
   const badgeCount = unseenCount.data ?? 0;
   const rows = query.data?.pages.flatMap((p) => p.notifications) ?? [];
@@ -45,7 +41,7 @@ export function NotificationBell() {
   }, [open]);
 
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div className={styles.wrap} ref={wrapRef} data-coachmark="notifications">
       <button
         type="button"
         className="btn btn--ghost btn--sm"

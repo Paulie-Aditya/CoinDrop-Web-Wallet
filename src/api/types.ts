@@ -155,3 +155,24 @@ export interface NotificationsResponse {
   nextCursor: string | null;
   unseenCount: number;
 }
+
+/** GET /wallet/deposits reads the same wallet_notifications table as
+ *  /wallet/notifications, so the row shape is identical. Only has data from
+ *  whenever deposit notifications started landing — no historical backfill. */
+export interface DepositsResponse {
+  deposits: WalletNotification[];
+  nextCursor: string | null;
+}
+
+/** GET /wallet/withdraw (list) shares _serialize_withdrawal_row with
+ *  GET /wallet/withdraw/<id>, so each row matches WithdrawStatus — plus a
+ *  createdAt this endpoint is expected to add for a history view (not
+ *  confirmed on the single-status lookup, so it's optional here). */
+export interface WithdrawHistoryItem extends WithdrawStatus {
+  createdAt?: string;
+}
+
+export interface WithdrawalsResponse {
+  withdrawals: WithdrawHistoryItem[];
+  nextCursor: string | null;
+}

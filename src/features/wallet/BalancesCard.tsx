@@ -20,7 +20,7 @@ export function BalancesCard() {
     .sort(sortByValue);
 
   return (
-    <section className={styles.card}>
+    <section className={styles.card} data-coachmark="balances">
       <header className={styles.head}>
         <div>
           <p className="eyebrow">Total balance</p>

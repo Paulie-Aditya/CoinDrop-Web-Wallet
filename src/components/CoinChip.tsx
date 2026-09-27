@@ -1,8 +1,11 @@
+import { useState } from "react";
+import { COIN_ICONS } from "../assets/coins";
 import styles from "./CoinChip.module.css";
 
 /* CoinDrop stores coin emoji as Discord custom-emoji markup, which is useless
- * on the web — so we render a monogram on a stable per-symbol colour instead.
- * A few well-known coins get their real brand colour; the rest hash to one of
+ * on the web. Where a real icon has been matched (see assets/coins/index.ts),
+ * we use it; otherwise we render a monogram on a stable per-symbol colour —
+ * a few well-known coins get their real brand colour, the rest hash to one of
  * a fixed set (same spirit as the bot's Telegram colour-circle fallback). */
 
 const BRAND: Record<string, string> = {
@@ -48,6 +51,21 @@ interface CoinChipProps {
 }
 
 export function CoinChip({ symbol, size = 36 }: CoinChipProps) {
+  const [iconBroken, setIconBroken] = useState(false);
+  const icon = COIN_ICONS[symbol];
+
+  if (icon && !iconBroken) {
+    return (
+      <img
+        src={icon}
+        alt=""
+        className={styles.icon}
+        style={{ width: size, height: size }}
+        onError={() => setIconBroken(true)}
+      />
+    );
+  }
+
   const bg = pick(symbol);
   const label = symbol.replace(/[^A-Z0-9]/gi, "").slice(0, 4);
   const scale = label.length >= 4 ? 0.24 : label.length === 3 ? 0.3 : 0.38;

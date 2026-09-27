@@ -63,6 +63,16 @@
   text-overflow: ellipsis;
 }
 
+.rowLink {
+  display: inline-flex;
+  margin-left: 0.4rem;
+  color: var(--ink-300);
+  vertical-align: middle;
+}
+.rowLink:hover {
+  color: var(--ink);
+}
+
 .rowMeta {
   font-size: 0.78rem;
   color: var(--ink-300);

@@ -6,6 +6,7 @@ import { AuthCallback } from "../pages/AuthCallback";
 import { Wallet } from "../pages/Wallet";
 import { Deposit } from "../pages/Deposit";
 import { Withdraw } from "../pages/Withdraw";
+import { History } from "../pages/History";
 import { NotFound } from "../pages/NotFound";
 
 export function App() {
@@ -36,6 +37,14 @@ export function App() {
           element={
             <RequireAuth>
               <Withdraw />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/wallet/history"
+          element={
+            <RequireAuth>
+              <History />
             </RequireAuth>
           }
         />
