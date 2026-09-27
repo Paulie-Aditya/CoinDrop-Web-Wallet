@@ -104,5 +104,51 @@ export interface WithdrawEstimate {
 }
 
 export interface WithdrawConfirmResult {
+  /** the withdrawal_queue row id — poll it with GET /wallet/withdraw/<id> */
+  id: string;
   status: "queued";
+}
+
+export type WithdrawStatusValue = "queued" | "processing" | "done" | "failed";
+
+export interface WithdrawStatus {
+  id: string;
+  status: WithdrawStatusValue;
+  currency: string;
+  toAddress: string;
+  memo: string | null;
+  amount: string;
+  sendAmount: string;
+  platformFee: string;
+  gasFee: string;
+  amountUsd: string | null;
+  sendAmountUsd: string | null;
+  platformFeeUsd: string | null;
+  gasFeeUsd: string | null;
+  /** set once the send actually broadcasts (status "done") */
+  txHash: string | null;
+  /** ready-to-click block-explorer link for txHash; null until then */
+  explorerUrl: string | null;
+}
+
+/** Currently deposit-only ("future scope" from the bot's own notification
+ *  system now lands here too) — kept open in case other kinds show up later. */
+export interface WalletNotification {
+  id: string;
+  symbol: string;
+  decimals: number;
+  /** smallest-unit integer string, same convention as everywhere else */
+  amount: string;
+  usdValue: string | null;
+  txHash: string | null;
+  chainName: string | null;
+  seen: boolean;
+  /** ISO 8601 */
+  timestamp: string;
+}
+
+export interface NotificationsResponse {
+  notifications: WalletNotification[];
+  nextCursor: string | null;
+  unseenCount: number;
 }

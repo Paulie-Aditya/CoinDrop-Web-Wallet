@@ -5,6 +5,7 @@ import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { useSession } from "../features/auth/useSession";
 import { useLogout } from "../features/auth/useLogout";
+import { NotificationBell } from "../features/notifications/NotificationBell";
 import styles from "./PageShell.module.css";
 
 export function PageShell({ children }: { children: ReactNode }) {
@@ -21,6 +22,7 @@ export function PageShell({ children }: { children: ReactNode }) {
 
           {user ? (
             <div className={styles.user}>
+              <NotificationBell />
               <span className={styles.identity}>
                 <Avatar username={user.username} src={user.avatarUrl} size={28} />
                 <span className={styles.username}>{user.username}</span>

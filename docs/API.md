@@ -131,6 +131,83 @@ fees) — `detail` carries the reason and the frontend surfaces it verbatim.
 
 ## `POST /wallet/withdraw/confirm`
 
-Body: `{ "token": "..." }` → `{ "status": "queued" }`. Deducts the balance and
-hands off to the withdrawal worker — irreversible. `400` if the token is
-unknown, already used, or its 30-second window has passed.
+Body: `{ "token": "..." }` → `{ "id": "112", "status": "queued" }`. Deducts the
+balance and hands off to the withdrawal worker — irreversible. `400` if the
+token is unknown, already used, or its 30-second window has passed. `id` is
+the `withdrawal_queue` row — poll it with the endpoint below.
+
+## `GET /wallet/withdraw/<id>`
+
+Live status for a withdrawal this session created. Scoped to the caller's own
+rows — a different user's id (or someone else's entirely) returns a plain
+`404`, not `403`, so it can't be used to enumerate other people's withdrawals.
+The frontend polls this every 4s until `status` reaches `done` or `failed`.
+
+```jsonc
+{
+  "id": "112",
+  "status": "done",             // queued | processing | done | failed
+  "currency": "LTC",
+  "toAddress": "...",
+  "memo": null,
+  "amount": "150000000",
+  "sendAmount": "148500000",
+  "platformFee": "750000",
+  "gasFee": "750000",
+  "amountUsd": "12.30",
+  "sendAmountUsd": "12.18",
+  "platformFeeUsd": "0.06",
+  "gasFeeUsd": "0.06",
+  "txHash": "3b1e...",          // null until status is "done"
+  "explorerUrl": "https://..."  // null until status is "done"
+}
+```
+
+`explorerUrl` is built from the chain's own `explorer_url` — the same link the
+bot's own success DM uses. **A `"failed"` status is not auto-refunded** — that
+matches the bot's existing behavior (this endpoint only surfaces it, doesn't
+change it); the frontend tells the user to contact support with the id rather
+than implying the balance will come back on its own.
+
+## `GET /wallet/notifications`
+
+Session-authenticated, deposit notifications only for now (the bot's own
+Discord/Telegram DMs are unaffected — this is a third channel, not a
+replacement). Same cursor-pagination convention as `/wallet/transactions`.
+
+Query params (all optional): `cursor` = opaque string from a previous
+response, `limit`.
+
+```jsonc
+{
+  "notifications": [
+    {
+      "id": "1",
+      "symbol": "LTC",
+      "decimals": 8,
+      "amount": "150000000",        // smallest-unit integer string
+      "usdValue": "12.30",          // or null if uncached
+      "txHash": "3b1e...",
+      "chainName": "Litecoin",
+      "seen": false,
+      "timestamp": "2026-09-28T12:00:00.000Z"
+    }
+  ],
+  "nextCursor": "8",                // null when there are no more pages
+  "unseenCount": 1
+}
+```
+
+`unseenCount` is a running total, not scoped to the current page — the
+frontend uses it for the notification-bell badge without needing to load the
+list. Fed by the bot's own `monitor_ws.add_to_db`, which POSTs to
+`/internal/deposit` (bot-only, its own `x-internal-secret`, separate from any
+other internal secret this API uses) right after a deposit credit commits;
+that write resolves the user through `resolve_canonical_id` so a deposit to a
+since-merged account still lands on the right person.
+
+## `POST /wallet/notifications/<id>/seen`
+
+No body. `200`/`204`. Marks one notification read; the frontend calls this
+when the user clicks a row, not in bulk. Scoped to the caller's own rows, same
+as the withdrawal-status endpoint.

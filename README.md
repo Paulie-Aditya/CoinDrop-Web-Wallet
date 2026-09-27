@@ -12,7 +12,9 @@ from a browser instead of Discord commands.
 - **Deposit** — an address (plus a memo or destination tag, when the coin
   needs one) for any supported coin
 - **Withdraw** — a two-step flow: review the fee breakdown and a 30-second
-  quote before anything actually moves
+  quote before anything actually moves, then live status until it's done
+- **Notifications** — a bell in the header for deposits landing on your
+  account, independent of the bot's own Discord/Telegram DMs
 - **Login** — Discord today; Telegram and Google are already built into the
   UI, waiting on their backend routes
 
@@ -67,7 +69,7 @@ src/
   api/         backend calls, types, and the mock layer used in local dev
   app/         router and the auth gate
   components/  shared UI — buttons, cards, the logo, loading/error states
-  features/    one folder per domain (auth, wallet) — hooks + the components that use them
+  features/    one folder per domain (auth, wallet, notifications) — hooks + the components that use them
   lib/         formatting helpers, the query client
   pages/       one file per route
 ```

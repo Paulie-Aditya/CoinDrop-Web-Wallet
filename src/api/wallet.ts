@@ -7,6 +7,7 @@ import type {
   WithdrawConfirmResult,
   WithdrawEstimate,
   WithdrawEstimateInput,
+  WithdrawStatus,
 } from "./types";
 
 export async function fetchBalances(): Promise<BalancesResponse> {
@@ -51,5 +52,12 @@ export async function confirmWithdrawal(token: string): Promise<WithdrawConfirmR
   const { data } = await http.post<WithdrawConfirmResult>("/wallet/withdraw/confirm", {
     token,
   });
+  return data;
+}
+
+export async function fetchWithdrawStatus(id: string): Promise<WithdrawStatus> {
+  const { data } = await http.get<WithdrawStatus>(
+    `/wallet/withdraw/${encodeURIComponent(id)}`,
+  );
   return data;
 }

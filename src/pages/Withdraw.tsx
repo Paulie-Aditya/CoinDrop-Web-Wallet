@@ -8,6 +8,7 @@ import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
 import { useBalances } from "../features/wallet/useBalances";
 import { useWithdrawConfirm, useWithdrawEstimate } from "../features/wallet/useWithdraw";
+import { WithdrawStatusPanel } from "../features/wallet/WithdrawStatusPanel";
 import type { WithdrawEstimate } from "../api/types";
 import styles from "./WalletActions.module.css";
 
@@ -43,7 +44,7 @@ export function Withdraw() {
   // from the balance that was selected when the quote was requested
   const [estimateDecimals, setEstimateDecimals] = useState(0);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
-  const [done, setDone] = useState(false);
+  const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
 
   const remaining = useCountdown(expiresAt);
   const expired = estimate !== null && remaining <= 0;
@@ -83,18 +84,18 @@ export function Withdraw() {
   function handleConfirm() {
     if (!estimate) return;
     confirmMutation.mutate(estimate.token, {
-      onSuccess: () => setDone(true),
+      onSuccess: (data) => setWithdrawalId(data.id),
     });
   }
 
   function startOver() {
     setEstimate(null);
     setExpiresAt(null);
-    setDone(false);
+    setWithdrawalId(null);
     confirmMutation.reset();
   }
 
-  if (done) {
+  if (withdrawalId) {
     return (
       <PageShell>
         <Link to="/wallet" className={styles.back}>
@@ -102,15 +103,7 @@ export function Withdraw() {
           Back to wallet
         </Link>
         <section className={`panel ${styles.card}`}>
-          <div className={styles.doneWrap}>
-            <StateBlock title="Withdrawal queued">
-              Your {estimate?.currency} withdrawal is queued for processing — check the
-              activity feed for its status.
-            </StateBlock>
-            <Link to="/wallet" className="btn btn--primary">
-              Back to wallet
-            </Link>
-          </div>
+          <WithdrawStatusPanel id={withdrawalId} decimals={estimateDecimals} />
         </section>
       </PageShell>
     );

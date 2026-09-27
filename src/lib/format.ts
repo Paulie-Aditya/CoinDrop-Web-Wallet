@@ -61,18 +61,21 @@ const usdFmt = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+// Sub-dollar amounts get up to 4 decimal places instead of flattening to the
+// nearest cent, so a $0.0037 fee (or a $0.187 one) doesn't read as "$0.00"
+// (or lose the .007 that actually distinguishes it from a same-cent amount).
 const usdSmallFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   minimumFractionDigits: 2,
-  maximumFractionDigits: 6,
+  maximumFractionDigits: 4,
 });
 
 export function formatUsd(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") return "—";
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return "—";
-  if (n !== 0 && Math.abs(n) < 0.01) return usdSmallFmt.format(n);
+  if (n !== 0 && Math.abs(n) < 1) return usdSmallFmt.format(n);
   return usdFmt.format(n);
 }
 
