@@ -37,6 +37,17 @@ export function Withdraw() {
   const activeSymbol = symbol || holdings[0]?.symbol || "";
   const selected = holdings.find((b) => b.symbol === activeSymbol);
 
+  // live USD hint while typing, priced off the cached balance snapshot —
+  // not a quote, just a rough sense of scale before requesting the real one
+  const heldUnits = selected ? Number(formatUnitsPlain(selected.amount, selected.decimals)) : 0;
+  const pricePerUnit =
+    selected?.usdValue && heldUnits > 0 ? Number(selected.usdValue) / heldUnits : null;
+  const typedAmount = Number(amount);
+  const estimatedUsd =
+    pricePerUnit !== null && Number.isFinite(typedAmount) && typedAmount > 0
+      ? typedAmount * pricePerUnit
+      : null;
+
   function requestEstimate() {
     if (!selected) return;
     const decimals = selected.decimals;
@@ -170,6 +181,9 @@ export function Withdraw() {
                 </button>
               )}
             </div>
+            {estimatedUsd !== null && (
+              <span className={styles.hint}>≈ {formatUsd(estimatedUsd)}</span>
+            )}
             {selected && (
               <span className={styles.hint}>
                 You hold {formatUnitsPlain(selected.amount, selected.decimals)} {selected.symbol}
