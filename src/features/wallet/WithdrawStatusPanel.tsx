@@ -4,6 +4,7 @@ import { CoinLoader } from "../../components/CoinLoader";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
 import { CopyButton } from "../../components/CopyButton";
+import { SuccessCheck } from "../../components/SuccessCheck";
 import { toApiError } from "../../api/http";
 import { queryClient } from "../../lib/queryClient";
 import { formatUnits, formatUsd } from "../../lib/format";
@@ -48,7 +49,12 @@ export function WithdrawStatusPanel({ id }: WithdrawStatusPanelProps) {
   if (data.status === "done") {
     return (
       <div>
-        <p className="eyebrow">Withdrawal complete</p>
+        <div className={styles.doneWrap} style={{ paddingTop: 0 }}>
+          <SuccessCheck />
+          <p className="eyebrow" style={{ marginTop: "0.6rem" }}>
+            Withdrawal complete
+          </p>
+        </div>
 
         <div className={styles.breakdown} style={{ marginTop: "0.9rem" }}>
           <div className={styles.breakdownRow} data-emphasis="true">

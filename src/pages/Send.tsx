@@ -4,6 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { Icon } from "../components/Icon";
 import { Button } from "../components/Button";
 import { StateBlock } from "../components/StateBlock";
+import { SuccessCheck } from "../components/SuccessCheck";
 import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
 import { useCountdown } from "../lib/useCountdown";
@@ -92,6 +93,7 @@ export function Send() {
         </Link>
         <section className={`panel ${styles.card}`}>
           <div className={styles.doneWrap}>
+            <SuccessCheck />
             <p className="eyebrow">Sent</p>
             <p className={styles.title}>
               {formatUnits(estimate.amount, estimate.decimals)} {estimate.symbol}
