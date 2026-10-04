@@ -3,8 +3,10 @@ import type { Balance, BalancesResponse, SessionUser, Transaction } from "../typ
 export const MOCK_USER: SessionUser = {
   id: "308453391777202176",
   username: "nova",
+  handle: null,
   avatarUrl: null,
   platform: "discord",
+  publicId: 1,
 };
 
 interface CoinDef {

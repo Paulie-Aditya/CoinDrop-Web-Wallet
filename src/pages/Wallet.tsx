@@ -13,6 +13,11 @@ const TOUR_STEPS: CoachmarkStep[] = [
     body: "Every coin you hold, with its live USD value and a running total.",
   },
   {
+    target: "send",
+    title: "Send",
+    body: "Send coins straight to another CoinDrop user by their CoinDrop ID — instant, no network fees.",
+  },
+  {
     target: "deposit",
     title: "Deposit",
     body: "Get an address — plus a memo or destination tag, when the coin needs one — for any supported coin.",
@@ -38,11 +43,10 @@ export function Wallet() {
   return (
     <PageShell>
       <div className={styles.actions}>
-        <button className="btn btn--outline" disabled aria-disabled="true">
+        <Link to="/wallet/send" className="btn btn--outline" data-coachmark="send">
           <Icon name="arrowUpRight" size={16} />
           Send
-          <span className={styles.soon}>Soon</span>
-        </button>
+        </Link>
         <Link to="/wallet/deposit" className="btn btn--outline" data-coachmark="deposit">
           <Icon name="arrowDownLeft" size={16} />
           Deposit

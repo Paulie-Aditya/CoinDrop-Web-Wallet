@@ -7,8 +7,12 @@ export type AuthPlatform = "discord" | "telegram" | "google";
 export interface SessionUser {
   id: string;
   username: string;
+  /** optional discriminator some platforms show alongside the username */
+  handle: string | null;
   avatarUrl: string | null;
   platform: AuthPlatform;
+  /** the numeric CoinDrop ID other users send to with `POST /wallet/send/estimate` */
+  publicId: number;
 }
 
 export interface Balance {
@@ -131,6 +135,30 @@ export interface WithdrawStatus {
   txHash: string | null;
   /** ready-to-click block-explorer link for txHash; null until then */
   explorerUrl: string | null;
+}
+
+export interface SendEstimateInput {
+  toPublicId: number;
+  symbol: string;
+  /** smallest-unit integer string, same convention as everywhere else */
+  amount: string;
+}
+
+export interface SendEstimate {
+  /** opaque, single-use, expires after `expiresInSeconds` */
+  token: string;
+  toPublicId: string;
+  toUsername: string;
+  toHandle: string | null;
+  symbol: string;
+  decimals: number;
+  amount: string;
+  usdValue: string | null;
+  expiresInSeconds: number;
+}
+
+export interface SendConfirmResult {
+  status: "sent";
 }
 
 /** Currently deposit-only — kept open in case other kinds show up later. */

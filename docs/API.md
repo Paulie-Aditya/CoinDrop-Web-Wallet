@@ -18,8 +18,21 @@ balances/transactions — keep the two in sync.
 
 ## `GET /auth/me`
 
-`200` → `{ "user": { "id": string, "username": string, "avatarUrl": string | null, "platform": "discord" } }`
-`401` if there's no valid session.
+```jsonc
+{
+  "user": {
+    "id": "464445762986704918",
+    "username": "paulieadi",
+    "handle": null,            // some platforms show a discriminator alongside the username
+    "avatarUrl": "https://cdn.discordapp.com/avatars/.../....png",
+    "platform": "discord",
+    "publicId": 5              // the numeric CoinDrop ID other users send to — see /wallet/send/estimate
+  }
+}
+```
+
+`401` if there's no valid session. `publicId` and `handle` confirmed live 2026-10-05 —
+not something the frontend surfaced before the Send feature needed it.
 
 ## `POST /auth/logout`
 
@@ -170,6 +183,45 @@ bot's own success DM uses. **A `"failed"` status is not auto-refunded** — that
 matches the bot's existing behavior (this endpoint only surfaces it, doesn't
 change it); the frontend tells the user to contact support with the id rather
 than implying the balance will come back on its own.
+
+## `POST /wallet/send/estimate`
+
+CoinDrop-to-CoinDrop transfer, resolved by recipient **publicId**, not
+username — there's no lookup-by-username endpoint, so the frontend asks for a
+numeric CoinDrop ID directly (see `GET /auth/me` for where a user finds their
+own). No side effects, safe to retry.
+
+Body: `{ "toPublicId": 5, "symbol": "SOL", "amount": "1000000" }` — `amount` is
+a smallest-unit integer string, same convention as everywhere else.
+
+```jsonc
+{
+  "token": "<signed, single-use, expires in expiresInSeconds>",
+  "toPublicId": "5",
+  "toUsername": "paulieadi",
+  "toHandle": null,
+  "symbol": "SOL",
+  "decimals": 9,
+  "amount": "1000000",
+  "usdValue": "0.12",          // null if uncached
+  "expiresInSeconds": 30
+}
+```
+
+Unlike withdraw, there's no fee breakdown — an internal transfer, no network
+or platform fee. `toUsername`/`toHandle` are shown prominently before confirm
+— the only fat-finger check against a mistyped publicId. Error cases:
+`400 {"detail": "You can't send to yourself."}`,
+`404 {"detail": "Recipient not found."}`,
+`400 {"detail": "Insufficient balance."}`.
+
+## `POST /wallet/send/confirm`
+
+Body: `{ "token": "..." }` → `{ "status": "sent" }`. Deducts the sender's
+balance and credits the recipient's — irreversible, and synchronous (no
+`withdrawal_queue`-style async status to poll; `"sent"` means it already
+happened). `409 {"detail": "This confirmation has expired. Estimate again."}`
+if the 30-second window has passed.
 
 ## `GET /wallet/notifications`
 

@@ -8,45 +8,52 @@ import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
 import { useCountdown } from "../lib/useCountdown";
 import { useBalances } from "../features/wallet/useBalances";
-import { useWithdrawConfirm, useWithdrawEstimate } from "../features/wallet/useWithdraw";
-import { WithdrawStatusPanel } from "../features/wallet/WithdrawStatusPanel";
-import type { WithdrawEstimate } from "../api/types";
+import { useSendConfirm, useSendEstimate } from "../features/wallet/useSend";
+import type { SendEstimate } from "../api/types";
 import styles from "./WalletActions.module.css";
 
-const MEMO_HINT_SYMBOLS = new Set(["WAX", "WAXP", "XRP", "XLM"]);
-
-export function Withdraw() {
+export function Send() {
   const balances = useBalances();
   const holdings = (balances.data?.balances ?? []).filter((b) => /[1-9]/.test(b.amount));
 
   const [symbol, setSymbol] = useState<string>("");
-  const [toAddress, setToAddress] = useState("");
+  const [toPublicId, setToPublicId] = useState("");
   const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
 
-  const [estimate, setEstimate] = useState<WithdrawEstimate | null>(null);
+  const [estimate, setEstimate] = useState<SendEstimate | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
-  const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   const remaining = useCountdown(expiresAt);
   const expired = estimate !== null && remaining <= 0;
 
-  const estimateMutation = useWithdrawEstimate();
-  const confirmMutation = useWithdrawConfirm();
+  const estimateMutation = useSendEstimate();
+  const confirmMutation = useSendConfirm();
 
   const activeSymbol = symbol || holdings[0]?.symbol || "";
   const selected = holdings.find((b) => b.symbol === activeSymbol);
 
+  // live USD hint while typing, priced off the cached balance snapshot —
+  // not a quote, just a rough sense of scale before requesting the real one
+  const heldUnits = selected ? Number(formatUnitsPlain(selected.amount, selected.decimals)) : 0;
+  const pricePerUnit =
+    selected?.usdValue && heldUnits > 0 ? Number(selected.usdValue) / heldUnits : null;
+  const typedAmount = Number(amount);
+  const estimatedUsd =
+    pricePerUnit !== null && Number.isFinite(typedAmount) && typedAmount > 0
+      ? typedAmount * pricePerUnit
+      : null;
+
   function requestEstimate() {
     if (!selected) return;
-    const decimals = selected.decimals;
+    const id = Number(toPublicId.trim());
+    if (!Number.isInteger(id) || id <= 0) return;
     estimateMutation.reset();
     estimateMutation.mutate(
       {
+        toPublicId: id,
         symbol: activeSymbol,
-        toAddress: toAddress.trim(),
-        amount: parseUnits(amount.trim(), decimals),
-        memo: memo.trim() || undefined,
+        amount: parseUnits(amount.trim(), selected.decimals),
       },
       {
         onSuccess: (data) => {
@@ -65,18 +72,18 @@ export function Withdraw() {
   function handleConfirm() {
     if (!estimate) return;
     confirmMutation.mutate(estimate.token, {
-      onSuccess: (data) => setWithdrawalId(data.id),
+      onSuccess: () => setSent(true),
     });
   }
 
   function startOver() {
     setEstimate(null);
     setExpiresAt(null);
-    setWithdrawalId(null);
+    setSent(false);
     confirmMutation.reset();
   }
 
-  if (withdrawalId) {
+  if (sent && estimate) {
     return (
       <PageShell>
         <Link to="/wallet" className={styles.back}>
@@ -84,7 +91,19 @@ export function Withdraw() {
           Back to wallet
         </Link>
         <section className={`panel ${styles.card}`}>
-          <WithdrawStatusPanel id={withdrawalId} />
+          <div className={styles.doneWrap}>
+            <p className="eyebrow">Sent</p>
+            <p className={styles.title}>
+              {formatUnits(estimate.amount, estimate.decimals)} {estimate.symbol}
+            </p>
+            <p className={styles.lede}>
+              to {estimate.toUsername}
+              {estimate.toHandle ? ` (${estimate.toHandle})` : ""}
+            </p>
+            <Link to="/wallet" className="btn btn--primary" style={{ marginTop: "0.5rem" }}>
+              Back to wallet
+            </Link>
+          </div>
         </section>
       </PageShell>
     );
@@ -97,26 +116,26 @@ export function Withdraw() {
         Back to wallet
       </Link>
 
-      <h1 className={styles.title}>Withdraw</h1>
+      <h1 className={styles.title}>Send</h1>
       <p className={styles.lede}>
-        Send coins from your CoinDrop balance to an external address. Review the fees
-        before confirming — withdrawals can't be undone.
+        Send coins directly to another CoinDrop user by their CoinDrop ID — instant, no
+        network fees.
       </p>
 
       {balances.isPending ? null : holdings.length === 0 ? (
         <section className={`panel ${styles.card}`}>
-          <StateBlock title="Nothing to withdraw">
+          <StateBlock title="Nothing to send">
             Get tipped in Discord or Telegram, then come back here.
           </StateBlock>
         </section>
       ) : !estimate ? (
         <form className={`panel ${styles.card}`} onSubmit={handleReview}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="wd-symbol">
+            <label className={styles.label} htmlFor="snd-symbol">
               Coin
             </label>
             <select
-              id="wd-symbol"
+              id="snd-symbol"
               className={styles.select}
               value={activeSymbol}
               onChange={(e) => {
@@ -133,26 +152,31 @@ export function Withdraw() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="wd-address">
-              Destination address
+            <label className={styles.label} htmlFor="snd-to">
+              Recipient's CoinDrop ID
             </label>
             <input
-              id="wd-address"
+              id="snd-to"
               className={styles.input}
-              value={toAddress}
-              onChange={(e) => setToAddress(e.target.value)}
-              placeholder="Paste the receiving address"
+              value={toPublicId}
+              onChange={(e) => setToPublicId(e.target.value)}
+              placeholder="e.g. 5"
+              inputMode="numeric"
+              pattern="[0-9]*"
               required
             />
+            <span className={styles.hint}>
+              Not a username — ask the recipient for their CoinDrop ID.
+            </span>
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="wd-amount">
+            <label className={styles.label} htmlFor="snd-amount">
               Amount
             </label>
             <div className={styles.row}>
               <input
-                id="wd-amount"
+                id="snd-amount"
                 className={styles.input}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -170,27 +194,12 @@ export function Withdraw() {
                 </button>
               )}
             </div>
+            {estimatedUsd !== null && (
+              <span className={styles.hint}>≈ {formatUsd(estimatedUsd)}</span>
+            )}
             {selected && (
               <span className={styles.hint}>
                 You hold {formatUnitsPlain(selected.amount, selected.decimals)} {selected.symbol}
-              </span>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="wd-memo">
-              Memo / destination tag <span className={styles.hint}>(optional)</span>
-            </label>
-            <input
-              id="wd-memo"
-              className={styles.input}
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="Only if your exchange or wallet asks for one"
-            />
-            {MEMO_HINT_SYMBOLS.has(activeSymbol) && (
-              <span className={styles.hint}>
-                {activeSymbol} withdrawals to an exchange usually need this.
               </span>
             )}
           </div>
@@ -201,76 +210,40 @@ export function Withdraw() {
 
           <div className={styles.actions}>
             <Button type="submit" variant="primary" disabled={estimateMutation.isPending}>
-              {estimateMutation.isPending ? "Getting quote…" : "Review withdrawal"}
+              {estimateMutation.isPending ? "Looking up…" : "Review"}
             </Button>
           </div>
         </form>
       ) : (
         <section className={`panel ${styles.card}`}>
-          <p className="eyebrow">Confirm withdrawal</p>
+          <p className="eyebrow">Confirm send</p>
 
-          <div className={styles.breakdown}>
-            <div className={styles.breakdownRow}>
+          <div className={styles.addressBlock} style={{ marginTop: "0.5rem" }}>
+            <p className={styles.label}>To</p>
+            <div className={styles.addressRow}>
+              <Icon name="user" size={16} />
+              <span className={`${styles.address} mono`}>
+                {estimate.toUsername}
+                {estimate.toHandle ? ` (${estimate.toHandle})` : ""}
+              </span>
+            </div>
+            <span className={styles.hint}>
+              Double-check this is who you meant to send to — sends can't be undone.
+            </span>
+          </div>
+
+          <div className={styles.breakdown} style={{ marginTop: "0.5rem" }}>
+            <div className={styles.breakdownRow} data-emphasis="true">
               <span className={styles.breakdownLabel}>Amount</span>
               <span className={styles.breakdownAmount}>
                 <span className="mono">
-                  {formatUnits(estimate.amount, estimate.decimals)} {estimate.currency}
+                  {formatUnits(estimate.amount, estimate.decimals)} {estimate.symbol}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.amountUsd)}
+                  {formatUsd(estimate.usdValue)}
                 </span>
               </span>
             </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>Platform fee</span>
-              <span className={styles.breakdownAmount}>
-                <span className="mono">
-                  −{formatUnits(estimate.platformFee, estimate.decimals)} {estimate.currency}
-                </span>
-                <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.platformFeeUsd)}
-                </span>
-              </span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>Network fee</span>
-              <span className={styles.breakdownAmount}>
-                <span className="mono">
-                  −{formatUnits(estimate.gasFee, estimate.decimals)} {estimate.currency}
-                </span>
-                <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.gasFeeUsd)}
-                </span>
-              </span>
-            </div>
-            <div className={styles.breakdownRow} data-emphasis="true">
-              <span className={styles.breakdownLabel}>You'll receive</span>
-              <span className={styles.breakdownAmount}>
-                <span className="mono">
-                  {formatUnits(estimate.sendAmount, estimate.decimals)} {estimate.currency}
-                </span>
-                <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.sendAmountUsd)}
-                </span>
-              </span>
-            </div>
-          </div>
-
-          <div className={styles.addressBlock}>
-            <p className={styles.label}>To</p>
-            <div className={styles.addressRow}>
-              <span className={`${styles.address} mono`}>{estimate.toAddress}</span>
-            </div>
-            {estimate.memo && (
-              <>
-                <p className={styles.label} style={{ marginTop: "0.75rem" }}>
-                  Memo
-                </p>
-                <div className={styles.addressRow}>
-                  <span className={`${styles.address} mono`}>{estimate.memo}</span>
-                </div>
-              </>
-            )}
           </div>
 
           <div className={styles.countdown} data-expired={expired}>
@@ -297,7 +270,7 @@ export function Withdraw() {
                 onClick={handleConfirm}
                 disabled={confirmMutation.isPending}
               >
-                {confirmMutation.isPending ? "Confirming…" : "Confirm withdrawal"}
+                {confirmMutation.isPending ? "Sending…" : "Confirm send"}
               </Button>
             )}
             <Button

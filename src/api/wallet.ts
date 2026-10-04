@@ -3,6 +3,9 @@ import type {
   BalancesResponse,
   DepositAddress,
   DepositsResponse,
+  SendConfirmResult,
+  SendEstimate,
+  SendEstimateInput,
   TransactionsResponse,
   TxFilter,
   WithdrawConfirmResult,
@@ -41,6 +44,16 @@ export async function fetchDepositAddress(symbol: string): Promise<DepositAddres
   const { data } = await http.get<DepositAddress>(
     `/wallet/deposit/${encodeURIComponent(symbol)}`,
   );
+  return data;
+}
+
+export async function estimateSend(input: SendEstimateInput): Promise<SendEstimate> {
+  const { data } = await http.post<SendEstimate>("/wallet/send/estimate", input);
+  return data;
+}
+
+export async function confirmSend(token: string): Promise<SendConfirmResult> {
+  const { data } = await http.post<SendConfirmResult>("/wallet/send/confirm", { token });
   return data;
 }
 

@@ -9,6 +9,8 @@ from a browser instead of Discord commands.
 - **Balances** — every coin you hold, with live USD values and a running total
 - **Activity** — every tip, drop, deposit and withdrawal that's touched your
   account, filterable by coin and direction
+- **Send** — transfer coins straight to another CoinDrop user by their
+  CoinDrop ID (shown on their own **Profile** page) — instant, no network fees
 - **Deposit** — an address (plus a memo or destination tag, when the coin
   needs one) for any supported coin
 - **Withdraw** — a two-step flow: review the fee breakdown and a 30-second
@@ -16,12 +18,11 @@ from a browser instead of Discord commands.
 - **Notifications** — a bell in the header for deposits landing on your
   account, independent of the bot's own Discord/Telegram DMs
 - **History** — dedicated deposit and withdrawal history, separate from the
-  combined activity feed (deposit history starts from when notifications went
-  live; withdrawal history is complete from day one)
+  combined activity feed
+- **Profile** — your CoinDrop ID, the number other users need to send you
+  coins
 - **Login** — Discord today; Telegram and Google are already built into the
   UI, waiting on their backend routes
-
-Sending to another CoinDrop username is the one piece still to come.
 
 ## Getting started
 

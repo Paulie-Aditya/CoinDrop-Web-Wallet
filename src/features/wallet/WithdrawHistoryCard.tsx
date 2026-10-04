@@ -9,13 +9,6 @@ import { useBalances } from "./useBalances";
 import { useWithdrawHistory } from "./useHistory";
 import styles from "./cards.module.css";
 
-const STATUS_OPTIONS: { id: WithdrawStatusValue; label: string }[] = [
-  { id: "queued", label: "Queued" },
-  { id: "processing", label: "Processing" },
-  { id: "done", label: "Done" },
-  { id: "failed", label: "Failed" },
-];
-
 const STATUS_LABEL: Record<WithdrawStatusValue, string> = {
   queued: "Queued",
   processing: "Processing",
@@ -32,12 +25,11 @@ const STATUS_COLOR: Record<WithdrawStatusValue, string> = {
 
 export function WithdrawHistoryCard() {
   const [currency, setCurrency] = useState<string | null>(null);
-  const [status, setStatus] = useState<WithdrawStatusValue | null>(null);
 
   const balances = useBalances();
   const currencyOptions = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
 
-  const query = useWithdrawHistory(currency, status);
+  const query = useWithdrawHistory(currency);
   const rows = query.data?.pages.flatMap((p) => p.withdrawals) ?? [];
 
   return (
@@ -45,22 +37,6 @@ export function WithdrawHistoryCard() {
       <header className={styles.head}>
         <p className="eyebrow">Withdrawal history</p>
         <div className={styles.filters}>
-          <div className={styles.selectWrap}>
-            <select
-              className={styles.select}
-              value={status ?? ""}
-              onChange={(e) => setStatus((e.target.value || null) as WithdrawStatusValue | null)}
-              aria-label="Filter by status"
-            >
-              <option value="">Any status</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <Icon name="chevronDown" size={14} className={styles.selectChevron} />
-          </div>
           {currencyOptions.length > 0 && (
             <div className={styles.selectWrap}>
               <select

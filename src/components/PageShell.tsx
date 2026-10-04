@@ -23,10 +23,10 @@ export function PageShell({ children }: { children: ReactNode }) {
           {user ? (
             <div className={styles.user}>
               <NotificationBell />
-              <span className={styles.identity}>
+              <Link to="/wallet/profile" className={styles.identity}>
                 <Avatar username={user.username} src={user.avatarUrl} size={28} />
                 <span className={styles.username}>{user.username}</span>
-              </span>
+              </Link>
               <button
                 className="btn btn--ghost btn--sm"
                 onClick={() => logout.mutate()}

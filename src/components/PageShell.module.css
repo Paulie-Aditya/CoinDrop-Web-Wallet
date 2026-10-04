@@ -38,6 +38,10 @@
   align-items: center;
   gap: 0.5rem;
   padding-right: 0.25rem;
+  border-radius: var(--r-sm);
+}
+.identity:hover .username {
+  color: var(--ink);
 }
 
 .username {

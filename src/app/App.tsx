@@ -4,6 +4,8 @@ import { Landing } from "../pages/Landing";
 import { Login } from "../pages/Login";
 import { AuthCallback } from "../pages/AuthCallback";
 import { Wallet } from "../pages/Wallet";
+import { Profile } from "../pages/Profile";
+import { Send } from "../pages/Send";
 import { Deposit } from "../pages/Deposit";
 import { Withdraw } from "../pages/Withdraw";
 import { History } from "../pages/History";
@@ -21,6 +23,22 @@ export function App() {
           element={
             <RequireAuth>
               <Wallet />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/wallet/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/wallet/send"
+          element={
+            <RequireAuth>
+              <Send />
             </RequireAuth>
           }
         />
