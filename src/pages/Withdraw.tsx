@@ -5,8 +5,9 @@ import { Icon } from "../components/Icon";
 import { Button } from "../components/Button";
 import { StateBlock } from "../components/StateBlock";
 import { toApiError } from "../api/http";
-import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
+import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
 import { useCountdown } from "../lib/useCountdown";
+import { useCurrency } from "../features/currency/CurrencyContext";
 import { useBalances } from "../features/wallet/useBalances";
 import { useWithdrawConfirm, useWithdrawEstimate } from "../features/wallet/useWithdraw";
 import { WithdrawStatusPanel } from "../features/wallet/WithdrawStatusPanel";
@@ -16,6 +17,7 @@ import styles from "./WalletActions.module.css";
 const MEMO_HINT_SYMBOLS = new Set(["WAX", "WAXP", "XRP", "XLM"]);
 
 export function Withdraw() {
+  const { money } = useCurrency();
   const balances = useBalances();
   const holdings = (balances.data?.balances ?? []).filter((b) => /[1-9]/.test(b.amount));
 
@@ -182,7 +184,7 @@ export function Withdraw() {
               )}
             </div>
             {estimatedUsd !== null && (
-              <span className={styles.hint}>≈ {formatUsd(estimatedUsd)}</span>
+              <span className={styles.hint}>≈ {money(estimatedUsd)}</span>
             )}
             {selected && (
               <span className={styles.hint}>
@@ -231,7 +233,7 @@ export function Withdraw() {
                   {formatUnits(estimate.amount, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.amountUsd)}
+                  {money(estimate.amountUsd)}
                 </span>
               </span>
             </div>
@@ -242,7 +244,7 @@ export function Withdraw() {
                   −{formatUnits(estimate.platformFee, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.platformFeeUsd)}
+                  {money(estimate.platformFeeUsd)}
                 </span>
               </span>
             </div>
@@ -253,7 +255,7 @@ export function Withdraw() {
                   −{formatUnits(estimate.gasFee, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.gasFeeUsd)}
+                  {money(estimate.gasFeeUsd)}
                 </span>
               </span>
             </div>
@@ -264,7 +266,7 @@ export function Withdraw() {
                   {formatUnits(estimate.sendAmount, estimate.decimals)} {estimate.currency}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.sendAmountUsd)}
+                  {money(estimate.sendAmountUsd)}
                 </span>
               </span>
             </div>

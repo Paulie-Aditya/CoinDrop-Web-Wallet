@@ -3,7 +3,8 @@ import { Icon } from "../../components/Icon";
 import { CoinLoader } from "../../components/CoinLoader";
 import { StateBlock } from "../../components/StateBlock";
 import { toApiError } from "../../api/http";
-import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
+import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
+import { useCurrency } from "../currency/CurrencyContext";
 import { useDecimalsBySymbol } from "../wallet/useBalances";
 import { useMarkNotificationSeen, useNotificationsList, useUnseenCount } from "./useNotifications";
 import styles from "./NotificationBell.module.css";
@@ -20,6 +21,7 @@ export function NotificationBell() {
   const query = useNotificationsList(open);
   const markSeen = useMarkNotificationSeen();
   const decimalsBySymbol = useDecimalsBySymbol();
+  const { money } = useCurrency();
 
   const badgeCount = unseenCount.data ?? 0;
   const rows = query.data?.pages.flatMap((p) => p.notifications) ?? [];
@@ -99,7 +101,7 @@ export function NotificationBell() {
                               {KIND_LABEL[n.kind] ?? n.kind} — {amount}
                             </span>
                             <span className={styles.rowMeta}>
-                              {n.usdValue ? `${formatUsd(n.usdValue)} · ` : ""}
+                              {n.usdValue ? `${money(n.usdValue)} · ` : ""}
                               <time dateTime={n.createdAt} title={absoluteTime(n.createdAt)}>
                                 {relativeTime(n.createdAt)}
                               </time>

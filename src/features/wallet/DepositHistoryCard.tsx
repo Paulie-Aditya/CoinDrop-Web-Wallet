@@ -2,8 +2,9 @@ import { useState } from "react";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
-import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
+import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
+import { useCurrency } from "../currency/CurrencyContext";
 import { useBalances, useDecimalsBySymbol } from "./useBalances";
 import { useDepositHistory } from "./useHistory";
 import styles from "./cards.module.css";
@@ -14,6 +15,7 @@ export function DepositHistoryCard() {
   const balances = useBalances();
   const currencyOptions = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
   const decimalsBySymbol = useDecimalsBySymbol();
+  const { money } = useCurrency();
 
   const query = useDepositHistory(currency);
   const rows = query.data?.pages.flatMap((p) => p.deposits) ?? [];
@@ -88,7 +90,7 @@ export function DepositHistoryCard() {
                         +{decimals !== undefined ? formatUnits(d.amount, decimals) : d.amount}{" "}
                         {d.symbol}
                       </span>
-                      <span className={`${styles.rowMeta} mono`}>{formatUsd(d.usdValue)}</span>
+                      <span className={`${styles.rowMeta} mono`}>{money(d.usdValue)}</span>
                     </span>
                   </li>
                 );

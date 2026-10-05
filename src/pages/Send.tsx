@@ -6,14 +6,16 @@ import { Button } from "../components/Button";
 import { StateBlock } from "../components/StateBlock";
 import { SuccessCheck } from "../components/SuccessCheck";
 import { toApiError } from "../api/http";
-import { formatUnits, formatUnitsPlain, formatUsd, parseUnits } from "../lib/format";
+import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
 import { useCountdown } from "../lib/useCountdown";
+import { useCurrency } from "../features/currency/CurrencyContext";
 import { useBalances } from "../features/wallet/useBalances";
 import { useSendConfirm, useSendEstimate } from "../features/wallet/useSend";
 import type { SendEstimate } from "../api/types";
 import styles from "./WalletActions.module.css";
 
 export function Send() {
+  const { money } = useCurrency();
   const balances = useBalances();
   const holdings = (balances.data?.balances ?? []).filter((b) => /[1-9]/.test(b.amount));
 
@@ -197,7 +199,7 @@ export function Send() {
               )}
             </div>
             {estimatedUsd !== null && (
-              <span className={styles.hint}>≈ {formatUsd(estimatedUsd)}</span>
+              <span className={styles.hint}>≈ {money(estimatedUsd)}</span>
             )}
             {selected && (
               <span className={styles.hint}>
@@ -242,7 +244,7 @@ export function Send() {
                   {formatUnits(estimate.amount, estimate.decimals)} {estimate.symbol}
                 </span>
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(estimate.usdValue)}
+                  {money(estimate.usdValue)}
                 </span>
               </span>
             </div>

@@ -2,6 +2,13 @@
  *  Amounts that come from the ledger are DECIMAL(65,0) integers in the
  *  currency's smallest unit — always carried as strings, never numbers. */
 
+export interface RatesResponse {
+  base: string;
+  /** code -> decimal string rate, USD-based (e.g. "INR": "96.40063400") */
+  rates: Record<string, string>;
+  updatedAt: string;
+}
+
 export type AuthPlatform = "discord" | "telegram" | "google";
 
 export interface SessionUser {

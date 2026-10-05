@@ -2,8 +2,9 @@ import { useState } from "react";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
-import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
+import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
+import { useCurrency } from "../currency/CurrencyContext";
 import type { WithdrawStatusValue } from "../../api/types";
 import { useBalances } from "./useBalances";
 import { useWithdrawHistory } from "./useHistory";
@@ -25,6 +26,7 @@ const STATUS_COLOR: Record<WithdrawStatusValue, string> = {
 
 export function WithdrawHistoryCard() {
   const [currency, setCurrency] = useState<string | null>(null);
+  const { money } = useCurrency();
 
   const balances = useBalances();
   const currencyOptions = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
@@ -115,7 +117,7 @@ export function WithdrawHistoryCard() {
                       −{formatUnits(w.sendAmount, w.decimals)} {w.currency}
                     </span>
                     <span className={`${styles.rowMeta} mono`}>
-                      {formatUsd(w.sendAmountUsd)}
+                      {money(w.sendAmountUsd)}
                     </span>
                   </span>
                 </li>

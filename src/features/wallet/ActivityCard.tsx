@@ -2,8 +2,9 @@ import { useState } from "react";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
-import { absoluteTime, formatUnits, formatUsd, relativeTime } from "../../lib/format";
+import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
+import { useCurrency } from "../currency/CurrencyContext";
 import type { Transaction, TxFilter, TxKind } from "../../api/types";
 import { useBalances } from "./useBalances";
 import { useTransactions } from "./useTransactions";
@@ -43,6 +44,7 @@ const EMPTY_COPY: Record<TxFilter, string> = {
 export function ActivityCard() {
   const [filter, setFilter] = useState<TxFilter>("all");
   const [currency, setCurrency] = useState<string | null>(null);
+  const { money } = useCurrency();
 
   const balances = useBalances();
   const currencyOptions = (balances.data?.balances ?? [])
@@ -130,7 +132,7 @@ export function ActivityCard() {
                         {incoming ? "+" : "−"}
                         {formatUnits(tx.amount, tx.decimals)} {tx.symbol}
                       </span>
-                      <span className={`${styles.rowMeta} mono`}>{formatUsd(tx.usdValue)}</span>
+                      <span className={`${styles.rowMeta} mono`}>{money(tx.usdValue)}</span>
                     </span>
                   </li>
                 );

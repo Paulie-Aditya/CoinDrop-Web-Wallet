@@ -345,3 +345,30 @@ single-status lookup never mentioned:
 If `createdAt` isn't actually present, the frontend just omits the relative
 timestamp per row rather than breaking — but it's worth confirming, since a
 history list with no dates at all is a real UX gap.
+
+## `GET /rates`
+
+Not under `/wallet`, no session needed. USD-based exchange rates for the
+header's display-currency selector — every USD value already returned
+elsewhere (`/wallet/balances`, `/wallet/transactions`, `/wallet/withdraw/estimate`,
+etc.) gets multiplied by `rates[code]` client-side to show in the user's
+chosen currency; the backend never re-prices anything.
+
+```jsonc
+{
+  "base": "USD",
+  "rates": {
+    "AUD": "1.43926900",
+    "EUR": "0.88889000",
+    "GBP": "0.75572700",
+    "INR": "96.40063400"
+    // ...~166 currencies total
+  },
+  "updatedAt": "2026-10-05T08:31:31Z"
+}
+```
+
+The frontend always fetches the full table (no `?codes=` filter) — it's small
+and the dropdown needs the full code list anyway — cached 5 minutes
+(`staleTime`/`refetchInterval`), not session-scoped. `?codes=AUD,INR,...` is
+supported server-side if a filtered call is ever useful, just unused today.

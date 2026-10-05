@@ -79,6 +79,38 @@ export function formatUsd(value: string | number | null | undefined): string {
   return usdFmt.format(n);
 }
 
+// One Intl.NumberFormat per (currency, precision) pair — constructing these
+// is non-trivial, and the set of currencies in play is small and fixed.
+const moneyFmtCache = new Map<string, Intl.NumberFormat>();
+
+function getMoneyFmt(code: string, small: boolean): Intl.NumberFormat {
+  const key = `${code}:${small}`;
+  let fmt = moneyFmtCache.get(key);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+      ...(small ? { maximumFractionDigits: 6 } : {}),
+    });
+    moneyFmtCache.set(key, fmt);
+  }
+  return fmt;
+}
+
+/** Same small-value precision bump as formatUsd, for any ISO currency code —
+ *  used once a non-USD display currency is selected (see useCurrency()). */
+export function formatMoney(value: string | number | null | undefined, code: string): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return "—";
+  try {
+    return getMoneyFmt(code, n !== 0 && Math.abs(n) < 1).format(n);
+  } catch {
+    // an ISO code Intl doesn't recognize — fall back rather than throw
+    return `${n.toFixed(2)} ${code}`;
+  }
+}
+
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 60 * 60 * 24 * 365],

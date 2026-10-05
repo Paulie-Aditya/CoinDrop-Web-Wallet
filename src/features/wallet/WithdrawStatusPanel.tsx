@@ -7,7 +7,8 @@ import { CopyButton } from "../../components/CopyButton";
 import { SuccessCheck } from "../../components/SuccessCheck";
 import { toApiError } from "../../api/http";
 import { queryClient } from "../../lib/queryClient";
-import { formatUnits, formatUsd } from "../../lib/format";
+import { formatUnits } from "../../lib/format";
+import { useCurrency } from "../currency/CurrencyContext";
 import { useWithdrawStatus } from "./useWithdraw";
 import styles from "../../pages/WalletActions.module.css";
 
@@ -22,6 +23,7 @@ interface WithdrawStatusPanelProps {
 
 export function WithdrawStatusPanel({ id }: WithdrawStatusPanelProps) {
   const { data, isPending, isError, error, refetch } = useWithdrawStatus(id);
+  const { money } = useCurrency();
 
   useEffect(() => {
     if (data?.status === "done" || data?.status === "failed") {
@@ -65,7 +67,7 @@ export function WithdrawStatusPanel({ id }: WithdrawStatusPanelProps) {
               </span>
               {data.sendAmountUsd && (
                 <span className={`${styles.breakdownUsd} mono`}>
-                  {formatUsd(data.sendAmountUsd)}
+                  {money(data.sendAmountUsd)}
                 </span>
               )}
             </span>

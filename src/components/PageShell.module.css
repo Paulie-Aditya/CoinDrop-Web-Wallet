@@ -33,6 +33,42 @@
   gap: 0.4rem;
 }
 
+.currencyWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.currencyIcon {
+  position: absolute;
+  left: 0.55rem;
+  pointer-events: none;
+  color: var(--ink-300);
+}
+
+.currencySelect {
+  appearance: none;
+  padding: 0.34rem 1.5rem 0.34rem 1.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-200);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.currencySelect option {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+.currencyChevron {
+  position: absolute;
+  right: 0.5rem;
+  pointer-events: none;
+  color: var(--ink-300);
+}
+
 .identity {
   display: flex;
   align-items: center;

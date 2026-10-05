@@ -1,8 +1,9 @@
 import { CoinChip } from "../../components/CoinChip";
 import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
-import { formatUnits, formatUsd } from "../../lib/format";
+import { formatUnits } from "../../lib/format";
 import { toApiError } from "../../api/http";
+import { useCurrency } from "../currency/CurrencyContext";
 import type { Balance } from "../../api/types";
 import { useBalances } from "./useBalances";
 import styles from "./cards.module.css";
@@ -13,6 +14,7 @@ function sortByValue(a: Balance, b: Balance) {
 
 export function BalancesCard() {
   const { data, isPending, isError, error, refetch, isFetching } = useBalances();
+  const { money } = useCurrency();
 
   const balances = (data?.balances ?? [])
     .filter((b) => /[1-9]/.test(b.amount))
@@ -27,7 +29,7 @@ export function BalancesCard() {
           {isPending ? (
             <span className="skeleton" style={{ display: "block", width: 180, height: 38, marginTop: 6 }} />
           ) : (
-            <p className={styles.total}>{formatUsd(data?.totalUsd ?? "0")}</p>
+            <p className={styles.total}>{money(data?.totalUsd ?? "0")}</p>
           )}
         </div>
         <button
@@ -64,7 +66,7 @@ export function BalancesCard() {
                   <span className="mono">
                     {formatUnits(b.amount, b.decimals)} {b.symbol}
                   </span>
-                  <span className={`${styles.rowMeta} mono`}>{formatUsd(b.usdValue)}</span>
+                  <span className={`${styles.rowMeta} mono`}>{money(b.usdValue)}</span>
                 </span>
               </li>
             ))}
