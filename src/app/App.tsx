@@ -6,6 +6,7 @@ import { AuthCallback } from "../pages/AuthCallback";
 import { Wallet } from "../pages/Wallet";
 import { Profile } from "../pages/Profile";
 import { Send } from "../pages/Send";
+import { BulkSend } from "../pages/BulkSend";
 import { Deposit } from "../pages/Deposit";
 import { Withdraw } from "../pages/Withdraw";
 import { History } from "../pages/History";
@@ -39,6 +40,14 @@ export function App() {
           element={
             <RequireAuth>
               <Send />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/wallet/send/bulk"
+          element={
+            <RequireAuth>
+              <BulkSend />
             </RequireAuth>
           }
         />

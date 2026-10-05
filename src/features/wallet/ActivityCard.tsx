@@ -3,6 +3,7 @@ import { StateBlock } from "../../components/StateBlock";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
 import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
+import { downloadCsv } from "../../lib/exportCsv";
 import { toApiError } from "../../api/http";
 import { useCurrency } from "../currency/CurrencyContext";
 import type { Transaction, TxFilter, TxKind } from "../../api/types";
@@ -44,6 +45,8 @@ const EMPTY_COPY: Record<TxFilter, string> = {
 export function ActivityCard() {
   const [filter, setFilter] = useState<TxFilter>("all");
   const [currency, setCurrency] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const { money } = useCurrency();
 
   const balances = useBalances();
@@ -52,7 +55,40 @@ export function ActivityCard() {
     .map((b) => b.symbol);
 
   const query = useTransactions(filter, currency);
-  const rows = query.data?.pages.flatMap((p) => p.transactions) ?? [];
+  const allRows = query.data?.pages.flatMap((p) => p.transactions) ?? [];
+
+  const hasDateFilter = !!dateFrom || !!dateTo;
+  const fromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+  const toMs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+
+  // /wallet/transactions has no date filter server-side, so this only
+  // narrows whatever's already been paginated in — "Load more" below doubles
+  // as "search further back in time" when a date range is active and the
+  // list looks empty.
+  const rows = hasDateFilter
+    ? allRows.filter((tx) => {
+        const t = new Date(tx.timestamp).getTime();
+        if (fromMs !== null && t < fromMs) return false;
+        if (toMs !== null && t > toMs) return false;
+        return true;
+      })
+    : allRows;
+
+  function exportCsv() {
+    downloadCsv(
+      `coindrop-activity-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Date", "Type", "Counterparty", "Symbol", "Amount", "USD value", "Direction"],
+      rows.map((tx) => [
+        tx.timestamp,
+        KIND_LABEL[tx.kind] ?? tx.kind,
+        tx.counterparty ?? "",
+        tx.symbol,
+        formatUnits(tx.amount, tx.decimals),
+        tx.usdValue ?? "",
+        tx.direction,
+      ]),
+    );
+  }
 
   return (
     <section className={styles.card}>
@@ -91,6 +127,47 @@ export function ActivityCard() {
               <Icon name="chevronDown" size={14} className={styles.selectChevron} />
             </div>
           ) : null}
+          <div className={styles.dateRange}>
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => setDateFrom(e.target.value)}
+              aria-label="From date"
+            />
+            <span className={styles.rowMeta}>to</span>
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => setDateTo(e.target.value)}
+              aria-label="To date"
+            />
+            {hasDateFilter && (
+              <button
+                type="button"
+                className={styles.dateClear}
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                aria-label="Clear date filter"
+              >
+                <Icon name="x" size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={exportCsv}
+            disabled={rows.length === 0}
+          >
+            <Icon name="download" size={14} />
+            Export CSV
+          </button>
         </div>
       </header>
 
@@ -106,7 +183,26 @@ export function ActivityCard() {
             {toApiError(query.error).message}
           </StateBlock>
         ) : rows.length === 0 ? (
-          <StateBlock title="Nothing here yet">{EMPTY_COPY[filter]}</StateBlock>
+          <>
+            <StateBlock title={hasDateFilter ? "No matches in this range" : "Nothing here yet"}>
+              {hasDateFilter
+                ? query.hasNextPage
+                  ? "None of what's loaded so far falls in this range — load more to search further back."
+                  : "No transactions fall in this date range."
+                : EMPTY_COPY[filter]}
+            </StateBlock>
+            {hasDateFilter && query.hasNextPage && (
+              <div className={styles.more}>
+                <Button
+                  size="sm"
+                  onClick={() => void query.fetchNextPage()}
+                  disabled={query.isFetchingNextPage}
+                >
+                  {query.isFetchingNextPage ? "Loading…" : "Load more"}
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <>
             <ul className={styles.rows}>

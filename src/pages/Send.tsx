@@ -123,7 +123,11 @@ export function Send() {
       <h1 className={styles.title}>Send</h1>
       <p className={styles.lede}>
         Send coins directly to another CoinDrop user by their CoinDrop ID — instant, no
-        network fees.
+        network fees. Sending to several people?{" "}
+        <Link to="/wallet/send/bulk" style={{ textDecoration: "underline" }}>
+          Upload a CSV instead
+        </Link>
+        .
       </p>
 
       {balances.isPending ? null : holdings.length === 0 ? (

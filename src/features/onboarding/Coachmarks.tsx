@@ -54,20 +54,30 @@ export function Coachmarks({ steps, storageKey }: CoachmarksProps) {
       const el = document.querySelector(`[data-coachmark="${step.target}"]`);
       if (!el) {
         setRect(null);
-        return;
+        return null;
       }
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+      return el;
     }
 
-    update();
+    const el = update();
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     document.body.style.overflow = "hidden";
+
+    // the target's own box can change size after this first measurement —
+    // most commonly a web font swapping in and widening its text — and
+    // neither a window resize nor a scroll event fires for that, which is
+    // what produced a spotlight that didn't quite line up with the button.
+    const resizeObserver = new ResizeObserver(update);
+    if (el) resizeObserver.observe(el);
+
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
       document.body.style.overflow = "";
+      resizeObserver.disconnect();
     };
   }, [active, step]);
 

@@ -10,7 +10,9 @@ from a browser instead of Discord commands.
 - **Activity** — every tip, drop, deposit and withdrawal that's touched your
   account, filterable by coin and direction
 - **Send** — transfer coins straight to another CoinDrop user by their
-  CoinDrop ID (shown on their own **Profile** page) — instant, no network fees
+  CoinDrop ID (shown on their own **Profile** page) — instant, no network
+  fees. Sending to several people at once? Upload a CSV (CoinDrop ID, Amount)
+  and the wallet looks up every recipient before anything actually sends
 - **Deposit** — an address (plus a memo or destination tag, when the coin
   needs one) for any supported coin
 - **Withdraw** — a two-step flow: review the fee breakdown and a 30-second

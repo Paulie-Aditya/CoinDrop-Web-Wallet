@@ -142,6 +142,33 @@
   align-items: center;
 }
 
+.dateRange {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dateInput {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-200);
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color-scheme: dark;
+}
+
+.dateClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-300);
+}
+.dateClear:hover {
+  color: var(--ink);
+}
+
 .select {
   appearance: none;
   padding: 0.34rem 1.7rem 0.34rem 0.7rem;
