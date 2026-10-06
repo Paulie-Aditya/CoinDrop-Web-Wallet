@@ -53,7 +53,20 @@ export function Icon({ name, size = 18, ...rest }: IconProps) {
 }
 
 /** Brand glyphs (filled, single-color). */
-export function BrandIcon({ name, size = 18 }: { name: "discord" | "telegram" | "google"; size?: number }) {
+export function BrandIcon({
+  name,
+  size = 18,
+}: {
+  name: "discord" | "telegram" | "google" | "kick";
+  size?: number;
+}) {
+  if (name === "kick") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M5 3h4v7.2L15.5 3H20l-7.6 8.8L20.4 21H16l-6.3-7.3L9 15.5V21H5Z" />
+      </svg>
+    );
+  }
   if (name === "discord") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

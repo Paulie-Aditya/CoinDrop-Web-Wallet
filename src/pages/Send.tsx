@@ -133,7 +133,7 @@ export function Send() {
       {balances.isPending ? null : holdings.length === 0 ? (
         <section className={`panel ${styles.card}`}>
           <StateBlock title="Nothing to send">
-            Get tipped in Discord or Telegram, then come back here.
+            Get tipped in Discord, Telegram, or Kick, then come back here.
           </StateBlock>
         </section>
       ) : !estimate ? (

@@ -51,7 +51,7 @@ export function BalancesCard() {
           </StateBlock>
         ) : balances.length === 0 ? (
           <StateBlock title="No balances yet">
-            Get tipped on Discord or Telegram and your coins show up here.
+            Get tipped on Discord, Telegram, or Kick and your coins show up here.
           </StateBlock>
         ) : (
           <ul className={styles.rows}>

@@ -1,13 +1,19 @@
 import { Link } from "react-router-dom";
 import { Wordmark } from "../components/Wordmark";
 import { LogoMark } from "../components/LogoMark";
-import { Icon } from "../components/Icon";
+import { Icon, BrandIcon } from "../components/Icon";
 import styles from "./Landing.module.css";
 
 const SEEN = [
   ["Balances", "Every coin you hold, with its live USD value and a running total."],
   ["Deposit & withdraw", "Move coins in from anywhere, or send them out to an external address."],
   ["Activity", "Every tip, drop, deposit and withdrawal, filterable by coin and direction."],
+];
+
+const TIP_PLATFORMS: { id: "discord" | "telegram" | "kick"; label: string }[] = [
+  { id: "discord", label: "Discord" },
+  { id: "telegram", label: "Telegram" },
+  { id: "kick", label: "Kick" },
 ];
 
 export function Landing() {
@@ -46,6 +52,16 @@ export function Landing() {
               About CoinDrop
               <Icon name="external" size={15} />
             </a>
+          </div>
+
+          <div className={styles.platforms}>
+            <span className={styles.platformsLabel}>Works in</span>
+            {TIP_PLATFORMS.map((p) => (
+              <span key={p.id} className={styles.platformBadge}>
+                <BrandIcon name={p.id} size={14} />
+                {p.label}
+              </span>
+            ))}
           </div>
         </div>
 

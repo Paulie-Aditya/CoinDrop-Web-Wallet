@@ -2,7 +2,9 @@
 
 The web companion to the [CoinDrop](https://coindrop.cc) tipping bot — log in
 with the Discord account you already use with the bot and manage your coins
-from a browser instead of Discord commands.
+from a browser instead of Discord commands. The underlying bot now also tips
+in Kick chat (`!tip`, `!bal`, `!link`, `!help`) alongside Discord and
+Telegram — one shared balance across all three, managed from this wallet.
 
 ## What it does
 
