@@ -31,6 +31,8 @@ import op from "./op.png";
 import bsdeth from "./bsdeth.png";
 import choctopus from "./choctopus.jpg";
 import cascoin from "./cascoin.webp";
+import noba from "./nobacoin.webp";
+import bmn from "./bmn.webp";
 
 /** Real icons fetched from CoinGecko, matched by coin **name**, not symbol —
  *  several CoinDrop symbols collide with unrelated CoinGecko listings that
@@ -51,9 +53,9 @@ import cascoin from "./cascoin.webp";
  *  the ETH icon rather than a separate lookup (2026-09-28), same pattern as
  *  the POLUSDC/SOLUSDC → USDC aliasing above.
  *
- *  Still no icon for: NOBA, BMN — no CoinGecko listing under their real name
- *  (checked directly), and no user-supplied asset yet. Keep the monogram
- *  fallback in CoinChip.tsx until one shows up. */
+ *  NOBA and BMN have no CoinGecko listing under their real name — icons
+ *  supplied directly by the user (2026-10-07, `nobacoin.webp`, `bmn.webp`).
+ *  Keep the monogram fallback in CoinChip.tsx for any future coin without one. */
 export const COIN_ICONS: Record<string, string> = {
   BTC: btc,
   ETH: eth,
@@ -91,6 +93,8 @@ export const COIN_ICONS: Record<string, string> = {
   BSDETH: bsdeth,
   CHOCTOPUS: choctopus,
   CAS: cascoin,
+  NOBA: noba,
+  BMN: bmn,
   // ETH bridged to the Optimism chain — same underlying asset, same icon
   OPETH: eth,
 };
