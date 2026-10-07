@@ -96,6 +96,7 @@ img,
 svg {
   display: block;
   max-width: 100%;
+  flex-shrink: 0;
 }
 
 :focus-visible {
