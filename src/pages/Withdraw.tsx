@@ -16,6 +16,11 @@ import styles from "./WalletActions.module.css";
 
 const MEMO_HINT_SYMBOLS = new Set(["WAX", "WAXP", "XRP", "XLM"]);
 
+// Solana's normal tx fee is ~5,000 lamports. A destination with no token
+// account yet needs one created (+2,039,280 lamports, the rent-exempt
+// minimum) — gasFee crossing this threshold means that, not a pricing bug.
+const SOL_NEW_ACCOUNT_GAS_THRESHOLD_LAMPORTS = 500_000;
+
 export function Withdraw() {
   const { money } = useCurrency();
   const balances = useBalances();
@@ -259,6 +264,13 @@ export function Withdraw() {
                 </span>
               </span>
             </div>
+            {estimate.currency === "SOL" &&
+              Number(estimate.gasFee) > SOL_NEW_ACCOUNT_GAS_THRESHOLD_LAMPORTS && (
+                <span className={styles.hint}>
+                  This address needs a new token account — a one-time ~$0.40 network fee
+                  applies.
+                </span>
+              )}
             <div className={styles.breakdownRow} data-emphasis="true">
               <span className={styles.breakdownLabel}>You'll receive</span>
               <span className={styles.breakdownAmount}>
