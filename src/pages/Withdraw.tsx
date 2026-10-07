@@ -16,10 +16,13 @@ import styles from "./WalletActions.module.css";
 
 const MEMO_HINT_SYMBOLS = new Set(["WAX", "WAXP", "XRP", "XLM"]);
 
-// Solana's normal tx fee is ~5,000 lamports. A destination with no token
-// account yet needs one created (+2,039,280 lamports, the rent-exempt
-// minimum) — gasFee crossing this threshold means that, not a pricing bug.
-const SOL_NEW_ACCOUNT_GAS_THRESHOLD_LAMPORTS = 500_000;
+// A Solana destination with no token account yet (for SOL itself or any SPL
+// token) needs one created on-chain, adding ~$0.40 worth of SOL to the usual
+// ~$0.002 tx fee. gasFee's raw integer is in the withdrawn currency's own
+// units — not lamports — so USD is the only scale comparable across every
+// SPL token; the ~200x gap between the two cases holds at any realistic SOL
+// price, so this threshold doesn't need tuning per coin.
+const SOLANA_NEW_ACCOUNT_GAS_THRESHOLD_USD = 0.005;
 
 export function Withdraw() {
   const { money } = useCurrency();
@@ -264,8 +267,8 @@ export function Withdraw() {
                 </span>
               </span>
             </div>
-            {estimate.currency === "SOL" &&
-              Number(estimate.gasFee) > SOL_NEW_ACCOUNT_GAS_THRESHOLD_LAMPORTS && (
+            {estimate.chainName === "Solana" &&
+              Number(estimate.gasFeeUsd) > SOLANA_NEW_ACCOUNT_GAS_THRESHOLD_USD && (
                 <span className={styles.hint}>
                   This address needs a new token account — a one-time ~$0.40 network fee
                   applies.

@@ -124,6 +124,7 @@ at 8 decimals is `"500000000"`, not `"5"`). No side effects.
   "token": "<opaque, single-use>",
   "currency": "BC3",
   "decimals": 8,
+  "chainName": null,           // e.g. "Solana"; null if unknown
   "toAddress": "...",
   "memo": null,
   "amount": "500000000",
@@ -142,6 +143,13 @@ The four `*Usd` fields are priced off one snapshot so they stay consistent with
 each other (and roughly with `/wallet/balances`, modulo price-cache staleness).
 `400` for a bad amount (non-positive, exceeds balance, or too small to clear
 fees) — `detail` carries the reason and the frontend surfaces it verbatim.
+
+For `chainName: "Solana"` (SOL itself or any SPL token), `gasFee` jumps from
+the usual ~$0.002 tx fee to ~$0.40 the first time a destination address
+receives that token, since it has no on-chain token account yet. `gasFee`'s
+raw integer is always in `currency`'s own smallest unit, never lamports, so
+compare `gasFeeUsd` (not `gasFee`) if you need to detect this case generically
+across coins.
 
 ## `POST /wallet/withdraw/confirm`
 

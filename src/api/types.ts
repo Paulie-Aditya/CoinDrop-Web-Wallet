@@ -98,6 +98,8 @@ export interface WithdrawEstimate {
   token: string;
   currency: string;
   decimals: number;
+  /** the chain this withdrawal moves on, e.g. "Solana"; null if unknown */
+  chainName: string | null;
   toAddress: string;
   memo: string | null;
   /** all four amounts are smallest-unit integer strings — format with
