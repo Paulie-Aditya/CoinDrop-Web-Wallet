@@ -309,6 +309,16 @@ no historical backfill.** A user's real first deposit may not appear here even
 though it's in their balance; surface this in the UI, don't let it read as a
 bug.
 
+**Needs its own `decimals` field** (here and on `/wallet/notifications`), the
+same way `/wallet/withdraw/<id>` already carries one. Today the frontend
+resolves it by cross-referencing `symbol` against the user's *current*
+`/wallet/balances` — which breaks for any coin they've since fully withdrawn
+or swapped away, since "zero balances can be included or omitted" there (see
+above). That showed up as a real bug: a BNB deposit rendered as
+`824599497119383 BNB` instead of `0.00082459... BNB` because BNB wasn't in the
+balances snapshot to resolve against. The frontend now hides the amount
+rather than show a raw, un-divided integer, but the actual fix is this field.
+
 ## `GET /wallet/withdraw` *(list — createdAt still unconfirmed, see below)*
 
 Withdrawal history, **all** of a user's `withdrawal_queue` rows regardless of

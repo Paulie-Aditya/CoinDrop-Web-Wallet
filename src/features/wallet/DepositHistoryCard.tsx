@@ -87,8 +87,9 @@ export function DepositHistoryCard() {
                     </span>
                     <span className={styles.rowAmount}>
                       <span className="mono" style={{ color: "var(--pos)" }}>
-                        +{decimals !== undefined ? formatUnits(d.amount, decimals) : d.amount}{" "}
-                        {d.symbol}
+                        {decimals !== undefined
+                          ? `+${formatUnits(d.amount, decimals)} ${d.symbol}`
+                          : d.symbol}
                       </span>
                       <span className={`${styles.rowMeta} mono`}>{money(d.usdValue)}</span>
                     </span>
