@@ -438,7 +438,7 @@ import ssv from "./ssv.png";
 import stable from "./stable.png";
 import stonk from "./stonk.png";
 import strcon from "./strcon.png";
-import super from "./super.png";
+import superIcon from "./super.png";
 import sushi from "./sushi.png";
 import swftc from "./swftc.png";
 import sxt from "./sxt.png";
@@ -595,9 +595,9 @@ export const COIN_ICONS: Record<string, string> = {
   ICP: icp, CAKE: cake, HTX: htx, OKB: okb, PENDLE: pendle, CRV: crv,
   LDO: ldo, ETHFI: ethfi, WIF: wif, STRK: strk, USDE: usde, BONK: bonk,
   MANA: mana, CAP: cap, JTO: jto,
-  0G: _0g,
-  1INCH: _1inch,
-  2Z: _2z,
+  "0G": _0g,
+  "1INCH": _1inch,
+  "2Z": _2z,
   AB: ab,
   ABT: abt,
   ACE: ace,
@@ -938,7 +938,7 @@ export const COIN_ICONS: Record<string, string> = {
   STABLE: stable,
   STONK: stonk,
   STRCON: strcon,
-  SUPER: super,
+  SUPER: superIcon,
   SUSHI: sushi,
   SWFTC: swftc,
   SXT: sxt,
