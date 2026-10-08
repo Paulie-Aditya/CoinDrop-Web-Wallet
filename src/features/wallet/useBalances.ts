@@ -9,10 +9,3 @@ export function useBalances() {
     queryFn: fetchBalances,
   });
 }
-
-/** Several endpoints (notifications, deposit/withdraw history) return amounts
- *  without a `decimals` field — resolve it by symbol against balances. */
-export function useDecimalsBySymbol(): Map<string, number> {
-  const { data } = useBalances();
-  return new Map((data?.balances ?? []).map((b) => [b.symbol, b.decimals]));
-}

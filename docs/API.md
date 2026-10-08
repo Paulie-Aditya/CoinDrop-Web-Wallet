@@ -248,6 +248,7 @@ response, `limit` (default 25, capped 100).
       "id": 1,                      // number, not a string
       "kind": "deposit",
       "symbol": "SOL",
+      "decimals": 9,
       "amount": "5000000",          // smallest-unit integer string
       "usdValue": "0.55",           // null if uncached
       "txHash": "abc123...",        // null for coins with no sweep tx (WAX/XRP)
@@ -261,8 +262,7 @@ response, `limit` (default 25, capped 100).
 }
 ```
 
-**No `decimals` field** — resolve it by cross-referencing the symbol against
-`/wallet/balances`. `unseenCount` is a total regardless of pagination, so the
+`unseenCount` is a total regardless of pagination, so the
 bell badge doesn't need to load the list — poll
 `GET /wallet/notifications?unseenOnly=1&limit=1` every 15–30s for that, and
 only fetch the full list when the panel actually opens.
@@ -292,7 +292,8 @@ each row is presumed to match that shape exactly:
       "id": 1,
       "kind": "deposit",
       "symbol": "SOL",
-      "amount": "5000000",       // smallest-unit integer string, no decimals field
+      "decimals": 9,
+      "amount": "5000000",       // smallest-unit integer string
       "usdValue": "0.55",        // or null
       "txHash": "abc123...",     // or null (WAX/XRP have no sweep tx)
       "chainName": "Solana",     // or null
@@ -308,16 +309,6 @@ each row is presumed to match that shape exactly:
 no historical backfill.** A user's real first deposit may not appear here even
 though it's in their balance; surface this in the UI, don't let it read as a
 bug.
-
-**Needs its own `decimals` field** (here and on `/wallet/notifications`), the
-same way `/wallet/withdraw/<id>` already carries one. Today the frontend
-resolves it by cross-referencing `symbol` against the user's *current*
-`/wallet/balances` — which breaks for any coin they've since fully withdrawn
-or swapped away, since "zero balances can be included or omitted" there (see
-above). That showed up as a real bug: a BNB deposit rendered as
-`824599497119383 BNB` instead of `0.00082459... BNB` because BNB wasn't in the
-balances snapshot to resolve against. The frontend now hides the amount
-rather than show a raw, un-divided integer, but the actual fix is this field.
 
 ## `GET /wallet/withdraw` *(list — createdAt still unconfirmed, see below)*
 

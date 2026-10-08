@@ -177,8 +177,8 @@ export interface WalletNotification {
   id: number;
   kind: NotificationKind;
   symbol: string;
-  /** smallest-unit integer string — decimals aren't included here, cross-
-   *  reference the symbol against /wallet/balances */
+  decimals: number;
+  /** smallest-unit integer string */
   amount: string;
   usdValue: string | null;
   /** null for coins with no sweep tx (e.g. WAX/XRP deposits) */

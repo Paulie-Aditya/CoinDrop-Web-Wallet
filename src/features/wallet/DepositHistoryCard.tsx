@@ -5,7 +5,7 @@ import { Button } from "../../components/Button";
 import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
 import { useCurrency } from "../currency/CurrencyContext";
-import { useBalances, useDecimalsBySymbol } from "./useBalances";
+import { useBalances } from "./useBalances";
 import { useDepositHistory } from "./useHistory";
 import styles from "./cards.module.css";
 
@@ -14,7 +14,6 @@ export function DepositHistoryCard() {
 
   const balances = useBalances();
   const currencyOptions = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
-  const decimalsBySymbol = useDecimalsBySymbol();
   const { money } = useCurrency();
 
   const query = useDepositHistory(currency);
@@ -66,36 +65,31 @@ export function DepositHistoryCard() {
         ) : (
           <>
             <ul className={styles.rows}>
-              {rows.map((d) => {
-                const decimals = decimalsBySymbol.get(d.symbol);
-                return (
-                  <li key={d.id} className={styles.row}>
-                    <span className={styles.dirIcon} data-dir="in" aria-hidden="true">
-                      <Icon name="arrowDownLeft" size={16} />
+              {rows.map((d) => (
+                <li key={d.id} className={styles.row}>
+                  <span className={styles.dirIcon} data-dir="in" aria-hidden="true">
+                    <Icon name="arrowDownLeft" size={16} />
+                  </span>
+                  <span className={styles.rowMain}>
+                    <span className={styles.rowTitle}>
+                      Deposit{d.chainName ? ` — ${d.chainName}` : ""}
                     </span>
-                    <span className={styles.rowMain}>
-                      <span className={styles.rowTitle}>
-                        Deposit{d.chainName ? ` — ${d.chainName}` : ""}
-                      </span>
-                      <time
-                        className={styles.rowMeta}
-                        dateTime={d.createdAt}
-                        title={absoluteTime(d.createdAt)}
-                      >
-                        {relativeTime(d.createdAt)}
-                      </time>
+                    <time
+                      className={styles.rowMeta}
+                      dateTime={d.createdAt}
+                      title={absoluteTime(d.createdAt)}
+                    >
+                      {relativeTime(d.createdAt)}
+                    </time>
+                  </span>
+                  <span className={styles.rowAmount}>
+                    <span className="mono" style={{ color: "var(--pos)" }}>
+                      +{formatUnits(d.amount, d.decimals)} {d.symbol}
                     </span>
-                    <span className={styles.rowAmount}>
-                      <span className="mono" style={{ color: "var(--pos)" }}>
-                        {decimals !== undefined
-                          ? `+${formatUnits(d.amount, decimals)} ${d.symbol}`
-                          : d.symbol}
-                      </span>
-                      <span className={`${styles.rowMeta} mono`}>{money(d.usdValue)}</span>
-                    </span>
-                  </li>
-                );
-              })}
+                    <span className={`${styles.rowMeta} mono`}>{money(d.usdValue)}</span>
+                  </span>
+                </li>
+              ))}
             </ul>
 
             {query.hasNextPage ? (

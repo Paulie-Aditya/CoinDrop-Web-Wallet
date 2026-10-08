@@ -5,7 +5,6 @@ import { StateBlock } from "../../components/StateBlock";
 import { toApiError } from "../../api/http";
 import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { useCurrency } from "../currency/CurrencyContext";
-import { useDecimalsBySymbol } from "../wallet/useBalances";
 import { useMarkNotificationSeen, useNotificationsList, useUnseenCount } from "./useNotifications";
 import styles from "./NotificationBell.module.css";
 
@@ -20,7 +19,6 @@ export function NotificationBell() {
   const unseenCount = useUnseenCount();
   const query = useNotificationsList(open);
   const markSeen = useMarkNotificationSeen();
-  const decimalsBySymbol = useDecimalsBySymbol();
   const { money } = useCurrency();
 
   const badgeCount = unseenCount.data ?? 0;
@@ -84,9 +82,7 @@ export function NotificationBell() {
               <>
                 <ul className={styles.rows}>
                   {rows.map((n) => {
-                    const decimals = decimalsBySymbol.get(n.symbol);
-                    const amount =
-                      decimals !== undefined ? `${formatUnits(n.amount, decimals)} ${n.symbol}` : n.symbol;
+                    const amount = `${formatUnits(n.amount, n.decimals)} ${n.symbol}`;
                     return (
                       <li key={n.id} className={styles.row}>
                         <button
