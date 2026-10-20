@@ -4,6 +4,11 @@
   z-index: 100;
 }
 
+.backdrop {
+  position: absolute;
+  inset: 0;
+}
+
 .highlight {
   position: fixed;
   border-radius: var(--r);

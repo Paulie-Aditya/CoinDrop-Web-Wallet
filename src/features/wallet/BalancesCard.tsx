@@ -38,7 +38,7 @@ export function BalancesCard() {
           disabled={isFetching}
           aria-label="Refresh balances"
         >
-          <Icon name="refresh" size={15} />
+          <Icon name="refresh" size={15} className={isFetching ? styles.spinning : undefined} />
         </button>
       </header>
 
