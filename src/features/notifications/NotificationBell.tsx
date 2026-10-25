@@ -5,7 +5,12 @@ import { StateBlock } from "../../components/StateBlock";
 import { toApiError } from "../../api/http";
 import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { useCurrency } from "../currency/CurrencyContext";
-import { useMarkNotificationSeen, useNotificationsList, useUnseenCount } from "./useNotifications";
+import {
+  useMarkAllNotificationsSeen,
+  useMarkNotificationSeen,
+  useNotificationsList,
+  useUnseenCount,
+} from "./useNotifications";
 import styles from "./NotificationBell.module.css";
 
 const KIND_LABEL: Record<string, string> = {
@@ -19,10 +24,12 @@ export function NotificationBell() {
   const unseenCount = useUnseenCount();
   const query = useNotificationsList(open);
   const markSeen = useMarkNotificationSeen();
+  const markAllSeen = useMarkAllNotificationsSeen();
   const { money } = useCurrency();
 
   const badgeCount = unseenCount.data ?? 0;
   const rows = query.data?.pages.flatMap((p) => p.notifications) ?? [];
+  const hasUnseen = badgeCount > 0 || rows.some((n) => !n.seen);
 
   useEffect(() => {
     if (!open) return;
@@ -61,6 +68,17 @@ export function NotificationBell() {
         <div className={styles.panel} role="menu">
           <div className={styles.panelHead}>
             <p className="eyebrow">Notifications</p>
+            {hasUnseen && (
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => markAllSeen.mutate()}
+                disabled={markAllSeen.isPending}
+              >
+                <Icon name="check" size={14} />
+                {markAllSeen.isPending ? "Marking…" : "Mark all as read"}
+              </button>
+            )}
           </div>
 
           <div className={styles.panelBody}>

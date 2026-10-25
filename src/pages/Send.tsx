@@ -318,20 +318,30 @@ export function Send() {
 
           <div className={styles.addressBlock} style={{ marginTop: "0.5rem" }}>
             <p className={styles.label}>To</p>
-            <div className={styles.addressRow}>
-              <Icon name="user" size={16} />
-              <span className={`${styles.address} mono`}>
-                {estimate.toUsername}
-                {estimate.toHandle ? ` (${estimate.toHandle})` : ""}
-              </span>
+            <div className={styles.addressRow} style={{ alignItems: "flex-start" }}>
+              <Icon name="user" size={16} style={{ marginTop: 2 }} />
+              <div className={styles.recipient}>
+                <span className={styles.recipientName}>
+                  {estimate.toUsername}
+                  {estimate.toHandle ? ` (${estimate.toHandle})` : ""}
+                </span>
+                <dl className={styles.recipientIds}>
+                  <div>
+                    <dt>CoinDrop ID</dt>
+                    <dd className="mono">{estimate.toPublicId}</dd>
+                  </div>
+                  {estimate.toDiscordId && (
+                    <div>
+                      <dt>Discord ID</dt>
+                      <dd className="mono">{estimate.toDiscordId}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
             </div>
-            <span className={`${styles.hint} mono`}>
-              CoinDrop ID {estimate.toPublicId}
-              {estimate.toDiscordId ? ` · Discord ID ${estimate.toDiscordId}` : ""}
-            </span>
-            <span className={styles.hint}>
+            <p className={styles.hint} style={{ marginTop: "0.6rem" }}>
               Double-check this is who you meant to send to — sends can't be undone.
-            </span>
+            </p>
           </div>
 
           <div className={styles.breakdown} style={{ marginTop: "0.5rem" }}>

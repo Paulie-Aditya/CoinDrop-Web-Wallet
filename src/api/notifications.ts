@@ -22,3 +22,7 @@ export async function fetchNotifications(
 export async function markNotificationSeen(id: number): Promise<void> {
   await http.post(`/wallet/notifications/${id}/seen`);
 }
+
+export async function markAllNotificationsSeen(): Promise<void> {
+  await http.post("/wallet/notifications/seen");
+}

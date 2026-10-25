@@ -1,5 +1,9 @@
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { fetchNotifications, markNotificationSeen } from "../../api/notifications";
+import {
+  fetchNotifications,
+  markAllNotificationsSeen,
+  markNotificationSeen,
+} from "../../api/notifications";
 import { queryClient } from "../../lib/queryClient";
 
 const unseenCountKey = ["notifications", "unseenCount"] as const;
@@ -23,6 +27,15 @@ export function useNotificationsList(enabled: boolean) {
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     enabled,
+  });
+}
+
+export function useMarkAllNotificationsSeen() {
+  return useMutation({
+    mutationFn: markAllNotificationsSeen,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 
