@@ -15,7 +15,7 @@ const TOUR_STEPS: CoachmarkStep[] = [
   {
     target: "send",
     title: "Send",
-    body: "Send coins straight to another CoinDrop user by their CoinDrop ID — instant, no network fees.",
+    body: "Send coins straight to another CoinDrop user by CoinDrop ID, Discord ID, or Discord username — instant, no network fees.",
   },
   {
     target: "deposit",

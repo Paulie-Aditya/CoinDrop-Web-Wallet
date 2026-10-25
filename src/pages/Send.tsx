@@ -11,8 +11,53 @@ import { useCountdown } from "../lib/useCountdown";
 import { useCurrency } from "../features/currency/CurrencyContext";
 import { useBalances } from "../features/wallet/useBalances";
 import { useSendConfirm, useSendEstimate } from "../features/wallet/useSend";
-import type { SendEstimate } from "../api/types";
+import type { SendEstimate, SendRecipient } from "../api/types";
+import cardStyles from "../features/wallet/cards.module.css";
 import styles from "./WalletActions.module.css";
+
+type RecipientKind = "coindrop" | "discordId" | "discordUsername";
+
+const RECIPIENT_KINDS: {
+  id: RecipientKind;
+  label: string;
+  field: string;
+  placeholder: string;
+  hint: string;
+}[] = [
+  {
+    id: "coindrop",
+    label: "CoinDrop ID",
+    field: "Recipient's CoinDrop ID",
+    placeholder: "e.g. 5",
+    hint: "The number shown on the recipient's CoinDrop profile.",
+  },
+  {
+    id: "discordId",
+    label: "Discord ID",
+    field: "Recipient's Discord user ID",
+    placeholder: "e.g. 123456789012345678",
+    hint: "In Discord: Settings → Advanced → Developer Mode, then right-click them → Copy User ID.",
+  },
+  {
+    id: "discordUsername",
+    label: "Username",
+    field: "Recipient's Discord username",
+    placeholder: "e.g. @coinfan",
+    hint: "Their username, not their display name. They need to have used CoinDrop before.",
+  },
+];
+
+/** the API's recipient field for what was typed, or null if it can't be valid */
+function toRecipient(kind: RecipientKind, raw: string): SendRecipient | null {
+  const value = raw.trim();
+  if (kind === "coindrop") {
+    const id = Number(value);
+    return Number.isInteger(id) && id > 0 ? { toPublicId: id } : null;
+  }
+  if (kind === "discordId") return /^\d{17,20}$/.test(value) ? { toDiscordId: value } : null;
+  const username = value.replace(/^@/, "");
+  return username ? { toDiscordUsername: username } : null;
+}
 
 export function Send() {
   const { money } = useCurrency();
@@ -20,7 +65,10 @@ export function Send() {
   const holdings = (balances.data?.balances ?? []).filter((b) => /[1-9]/.test(b.amount));
 
   const [symbol, setSymbol] = useState<string>("");
-  const [toPublicId, setToPublicId] = useState("");
+  const [recipientKind, setRecipientKind] = useState<RecipientKind>("coindrop");
+  const [recipientInput, setRecipientInput] = useState("");
+  const kind = RECIPIENT_KINDS.find((k) => k.id === recipientKind)!;
+  const recipient = toRecipient(recipientKind, recipientInput);
   const [amount, setAmount] = useState("");
 
   const [estimate, setEstimate] = useState<SendEstimate | null>(null);
@@ -48,13 +96,11 @@ export function Send() {
       : null;
 
   function requestEstimate() {
-    if (!selected) return;
-    const id = Number(toPublicId.trim());
-    if (!Number.isInteger(id) || id <= 0) return;
+    if (!selected || !recipient) return;
     estimateMutation.reset();
     estimateMutation.mutate(
       {
-        toPublicId: id,
+        ...recipient,
         symbol: activeSymbol,
         amount: parseUnits(amount.trim(), selected.decimals),
       },
@@ -122,8 +168,8 @@ export function Send() {
 
       <h1 className={styles.title}>Send</h1>
       <p className={styles.lede}>
-        Send coins directly to another CoinDrop user by their CoinDrop ID — instant, no
-        network fees. Sending to several people?{" "}
+        Send coins directly to another CoinDrop user by their CoinDrop ID, Discord ID, or
+        Discord username — instant, no network fees. Sending to several people?{" "}
         <Link to="/wallet/send/bulk" style={{ textDecoration: "underline" }}>
           Upload a CSV instead
         </Link>
@@ -160,22 +206,62 @@ export function Send() {
           </div>
 
           <div className={styles.field}>
+            <span className={styles.label} id="snd-to-kind">
+              Send to
+            </span>
+            <div
+              className={cardStyles.segmented}
+              role="radiogroup"
+              aria-labelledby="snd-to-kind"
+              style={{ display: "flex", width: "100%", maxWidth: 420 }}
+            >
+              {RECIPIENT_KINDS.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={recipientKind === k.id}
+                  className={cardStyles.segment}
+                  style={{ flex: 1, whiteSpace: "nowrap" }}
+                  data-active={recipientKind === k.id}
+                  onClick={() => {
+                    setRecipientKind(k.id);
+                    setRecipientInput("");
+                    estimateMutation.reset();
+                  }}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="snd-to">
-              Recipient's CoinDrop ID
+              {kind.field}
             </label>
             <input
               id="snd-to"
               className={styles.input}
-              value={toPublicId}
-              onChange={(e) => setToPublicId(e.target.value)}
-              placeholder="e.g. 5"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              value={recipientInput}
+              onChange={(e) => setRecipientInput(e.target.value)}
+              placeholder={kind.placeholder}
+              inputMode={recipientKind === "discordUsername" ? "text" : "numeric"}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               required
             />
-            <span className={styles.hint}>
-              Not a username — ask the recipient for their CoinDrop ID.
-            </span>
+            <span className={styles.hint}>{kind.hint}</span>
+            {recipientInput.trim() !== "" && !recipient && (
+              <span className={styles.error}>
+                {recipientKind === "discordId"
+                  ? "A Discord user ID is a 17–20 digit number."
+                  : recipientKind === "discordUsername"
+                    ? "Enter a username."
+                    : "Enter a whole number."}
+              </span>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -217,7 +303,11 @@ export function Send() {
           )}
 
           <div className={styles.actions}>
-            <Button type="submit" variant="primary" disabled={estimateMutation.isPending}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={estimateMutation.isPending || !recipient}
+            >
               {estimateMutation.isPending ? "Looking up…" : "Review"}
             </Button>
           </div>
@@ -235,6 +325,10 @@ export function Send() {
                 {estimate.toHandle ? ` (${estimate.toHandle})` : ""}
               </span>
             </div>
+            <span className={`${styles.hint} mono`}>
+              CoinDrop ID {estimate.toPublicId}
+              {estimate.toDiscordId ? ` · Discord ID ${estimate.toDiscordId}` : ""}
+            </span>
             <span className={styles.hint}>
               Double-check this is who you meant to send to — sends can't be undone.
             </span>

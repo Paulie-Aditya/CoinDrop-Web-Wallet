@@ -146,12 +146,18 @@ export interface WithdrawStatus {
   explorerUrl: string | null;
 }
 
-export interface SendEstimateInput {
-  toPublicId: number;
+/** exactly one way of addressing the recipient */
+export type SendRecipient =
+  | { toPublicId: number }
+  /** a string, not a number: Discord snowflakes overflow a JS number */
+  | { toDiscordId: string }
+  | { toDiscordUsername: string };
+
+export type SendEstimateInput = SendRecipient & {
   symbol: string;
   /** smallest-unit integer string, same convention as everywhere else */
   amount: string;
-}
+};
 
 export interface SendEstimate {
   /** opaque, single-use, expires after `expiresInSeconds` */
@@ -159,6 +165,8 @@ export interface SendEstimate {
   toPublicId: string;
   toUsername: string;
   toHandle: string | null;
+  /** the recipient's linked Discord account, if any */
+  toDiscordId: string | null;
   symbol: string;
   decimals: number;
   amount: string;
