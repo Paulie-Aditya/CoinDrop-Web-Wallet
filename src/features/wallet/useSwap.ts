@@ -9,7 +9,8 @@ export function useSwapAssets() {
   return useQuery({
     queryKey: ["wallet", "swap", "assets"],
     queryFn: fetchSwapAssets,
-    staleTime: 5 * 60_000,
+    // Which coins can be swapped changes rarely; the backend caches it for an hour.
+    staleTime: 30 * 60_000,
   });
 }
 
