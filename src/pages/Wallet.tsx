@@ -28,6 +28,11 @@ const TOUR_STEPS: CoachmarkStep[] = [
     body: "Send coins out in two steps: review the fee breakdown and a 30-second quote before anything actually moves.",
   },
   {
+    target: "swap",
+    title: "Swap",
+    body: "Turn one coin in your balance into another — see the rate and fee before anything moves.",
+  },
+  {
     target: "history",
     title: "History",
     body: "Full deposit and withdrawal history, separate from the combined activity feed below.",
@@ -54,6 +59,10 @@ export function Wallet() {
         <Link to="/wallet/withdraw" className="btn btn--outline" data-coachmark="withdraw">
           <Icon name="external" size={16} />
           Withdraw
+        </Link>
+        <Link to="/wallet/swap" className="btn btn--outline" data-coachmark="swap">
+          <Icon name="swap" size={16} />
+          Swap
         </Link>
         <Link to="/wallet/history" className="btn btn--outline" data-coachmark="history">
           <Icon name="list" size={16} />

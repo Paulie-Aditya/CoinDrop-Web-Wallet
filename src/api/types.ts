@@ -224,3 +224,78 @@ export interface WithdrawalsResponse {
   withdrawals: WithdrawHistoryItem[];
   nextCursor: string | null;
 }
+
+/* ── Swap (POST /wallet/swap/quote → /confirm, GET /wallet/swap[/<id>]) ──
+ * Amounts are smallest-unit integer strings, like everywhere else. CoinDrop's
+ * fee is taken inside the swap, so `to.amount` is already after it. */
+
+export interface SwapAsset {
+  currencyId: number;
+  symbol: string;
+  decimals: number;
+  chainName: string;
+}
+
+export interface SwapAssetsResponse {
+  assets: SwapAsset[];
+  feeBps: number;
+}
+
+export interface SwapQuoteInput {
+  fromSymbol: string;
+  toSymbol: string;
+  /** smallest-unit integer string */
+  amount: string;
+}
+
+export interface SwapQuote {
+  token: string;
+  from: { symbol: string; decimals: number; amount: string };
+  to: { symbol: string; decimals: number; amount: string; minAmount: string };
+  venue: string;
+  provider: string | null;
+  feeBps: number;
+  etaSeconds: number;
+  amountUsd: string | null;
+  receiveUsd: string | null;
+  expiresInSeconds: number;
+}
+
+/** pending until CrossFare reports it final; needs_review means support looks at it. */
+export type SwapStatusValue = "pending" | "completed" | "refunded" | "needs_review";
+
+/** CrossFare's live stage while pending. */
+export type SwapProgress =
+  | "awaiting_deposit"
+  | "confirming"
+  | "exchanging"
+  | "completed"
+  | "refunded"
+  | "failed"
+  | "expired";
+
+export interface Swap {
+  id: number;
+  status: SwapStatusValue;
+  progress: SwapProgress | null;
+  fromSymbol: string;
+  toSymbol: string;
+  fromDecimals: number;
+  toDecimals: number;
+  amountIn: string;
+  expectedOut: string;
+  minOut: string;
+  /** set once completed */
+  amountOut: string | null;
+  venue: string;
+  provider: string | null;
+  feeBps: number;
+  depositTxHash: string | null;
+  createdAt: string;
+  settledAt: string | null;
+}
+
+export interface SwapsResponse {
+  swaps: Swap[];
+  nextCursor: string | null;
+}

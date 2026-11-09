@@ -9,6 +9,7 @@ import { Send } from "../pages/Send";
 import { BulkSend } from "../pages/BulkSend";
 import { Deposit } from "../pages/Deposit";
 import { Withdraw } from "../pages/Withdraw";
+import { Swap } from "../pages/Swap";
 import { History } from "../pages/History";
 import { NotFound } from "../pages/NotFound";
 
@@ -64,6 +65,14 @@ export function App() {
           element={
             <RequireAuth>
               <Withdraw />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/wallet/swap"
+          element={
+            <RequireAuth>
+              <Swap />
             </RequireAuth>
           }
         />

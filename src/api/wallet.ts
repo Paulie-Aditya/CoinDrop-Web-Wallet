@@ -6,6 +6,11 @@ import type {
   SendConfirmResult,
   SendEstimate,
   SendEstimateInput,
+  Swap,
+  SwapAssetsResponse,
+  SwapQuote,
+  SwapQuoteInput,
+  SwapsResponse,
   TransactionsResponse,
   TxFilter,
   WithdrawConfirmResult,
@@ -111,5 +116,33 @@ export async function fetchWithdrawHistory(
   if (query.cursor) params.cursor = query.cursor;
   if (query.limit) params.limit = String(query.limit);
   const { data } = await http.get<WithdrawalsResponse>("/wallet/withdraw", { params });
+  return data;
+}
+
+export async function fetchSwapAssets(): Promise<SwapAssetsResponse> {
+  const { data } = await http.get<SwapAssetsResponse>("/wallet/swap/assets");
+  return data;
+}
+
+export async function quoteSwap(input: SwapQuoteInput): Promise<SwapQuote> {
+  const { data } = await http.post<SwapQuote>("/wallet/swap/quote", input);
+  return data;
+}
+
+export async function confirmSwap(token: string): Promise<{ swap: Swap }> {
+  const { data } = await http.post<{ swap: Swap }>("/wallet/swap/confirm", { token });
+  return data;
+}
+
+export async function fetchSwaps(cursor: string | null = null): Promise<SwapsResponse> {
+  const { data } = await http.get<SwapsResponse>("/wallet/swap", {
+    params: cursor ? { cursor } : {},
+  });
+  return data;
+}
+
+/** Reading a pending swap also advances it on the backend. */
+export async function fetchSwap(id: number): Promise<Swap> {
+  const { data } = await http.get<Swap>(`/wallet/swap/${id}`);
   return data;
 }
