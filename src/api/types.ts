@@ -234,6 +234,10 @@ export interface SwapAsset {
   symbol: string;
   decimals: number;
   chainName: string;
+  /** CoinDrop's chain id; older backends omit it */
+  chainId?: number;
+  /** a token on its chain rather than the chain's own coin; older backends omit it */
+  isToken?: boolean;
 }
 
 export interface SwapAssetsResponse {

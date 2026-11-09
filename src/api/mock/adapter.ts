@@ -59,11 +59,13 @@ function transactionsPage(params: URLSearchParams): TransactionsResponse {
 
 /* ── swaps: an in-memory swap that walks through each stage on a clock ── */
 const SWAP_ASSETS = [
-  { currencyId: 1, symbol: "BTC", decimals: 8, chainName: "Bitcoin", usd: 98000 },
-  { currencyId: 2, symbol: "ETH", decimals: 18, chainName: "Ethereum", usd: 3200 },
-  { currencyId: 3, symbol: "SOL", decimals: 9, chainName: "Solana", usd: 180 },
-  { currencyId: 4, symbol: "LTC", decimals: 8, chainName: "Litecoin", usd: 95 },
-  { currencyId: 6, symbol: "USDC", decimals: 6, chainName: "Ethereum", usd: 1 },
+  { currencyId: 1, symbol: "BTC", decimals: 8, chainId: 100001, chainName: "Bitcoin", isToken: false, usd: 98000 },
+  { currencyId: 2, symbol: "ETH", decimals: 18, chainId: 1, chainName: "Ethereum", isToken: false, usd: 3200 },
+  { currencyId: 3, symbol: "SOL", decimals: 9, chainId: 100002, chainName: "Solana", isToken: false, usd: 180 },
+  { currencyId: 4, symbol: "LTC", decimals: 8, chainId: 100003, chainName: "Litecoin", isToken: false, usd: 95 },
+  { currencyId: 6, symbol: "USDC", decimals: 6, chainId: 1, chainName: "Ethereum", isToken: true, usd: 1 },
+  { currencyId: 7, symbol: "USDT", decimals: 6, chainId: 1, chainName: "Ethereum", isToken: true, usd: 1 },
+  { currencyId: 8, symbol: "SOLUSDC", decimals: 6, chainId: 100002, chainName: "Solana", isToken: true, usd: 1 },
 ];
 const MOCK_SWAP_STAGE_MS = 6000;
 const mockSwaps: (Swap & { startedAt: number })[] = [];
@@ -171,7 +173,10 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   if (path.startsWith("/wallet/swap") && !mockSession.isActive()) fail(401, "Not signed in", config);
 
   if (path === "/wallet/swap/assets" && method === "get") {
-    const assets = SWAP_ASSETS.map((a) => ({ currencyId: a.currencyId, symbol: a.symbol, decimals: a.decimals, chainName: a.chainName }));
+    const assets = SWAP_ASSETS.map((a) => ({
+      currencyId: a.currencyId, symbol: a.symbol, decimals: a.decimals,
+      chainId: a.chainId, chainName: a.chainName, isToken: a.isToken,
+    }));
     return ok({ assets, feeBps: 100 }, config);
   }
 

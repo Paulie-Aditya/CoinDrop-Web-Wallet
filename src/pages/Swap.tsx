@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { PageShell } from "../components/PageShell";
 import { Icon } from "../components/Icon";
-import { CoinChip } from "../components/CoinChip";
 import { StateBlock } from "../components/StateBlock";
 import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
@@ -20,8 +19,8 @@ import {
 } from "../features/wallet/useSwap";
 import { SwapStatusPanel } from "../features/wallet/SwapStatusPanel";
 import { SwapHistoryCard } from "../features/wallet/SwapHistoryCard";
-import { CoinPicker, type PickerCoin } from "../features/wallet/CoinPicker";
-import { ROUTE_NAME, etaLabel, feeLabel } from "../features/wallet/swapLabels";
+import { CoinMark, CoinPicker, type PickerCoin } from "../features/wallet/CoinPicker";
+import { ROUTE_NAME, chainKey, etaLabel, feeLabel } from "../features/wallet/swapLabels";
 import type { SwapAsset, SwapQuote } from "../api/types";
 import styles from "./Swap.module.css";
 
@@ -38,16 +37,29 @@ function rateLabel(q: SwapQuote): string | null {
   const got = Number(formatUnitsPlain(q.to.amount, q.to.decimals));
   if (!(paid > 0) || !(got > 0)) return null;
   const rate = got / paid;
-  const shown = rate >= 1 ? rate.toLocaleString("en-US", { maximumFractionDigits: 4 }) : rate.toPrecision(4);
+  const shown =
+    rate >= 1
+      ? rate.toLocaleString("en-US", { maximumFractionDigits: 4 })
+      : rate.toLocaleString("en-US", { maximumSignificantDigits: 4 });
   return `1 ${q.from.symbol} = ${shown} ${q.to.symbol}`;
 }
 
-function CoinButton({ asset, label, onClick }: { asset?: SwapAsset; label: string; onClick: () => void }) {
+function CoinButton({
+  asset,
+  label,
+  chainIcons,
+  onClick,
+}: {
+  asset?: SwapAsset;
+  label: string;
+  chainIcons: Map<string, string>;
+  onClick: () => void;
+}) {
   return (
     <button type="button" className={styles.coin} onClick={onClick} aria-label={label}>
       {asset ? (
         <>
-          <CoinChip symbol={asset.symbol} size={30} />
+          <CoinMark coin={asset} size={30} chainIcon={chainIcons.get(chainKey(asset))} />
           <span className={styles.coinText}>
             <strong>{asset.symbol}</strong>
             <small>{asset.chainName}</small>
@@ -79,6 +91,8 @@ export function Swap() {
   const swappable = assets.data?.assets ?? [];
   const held = new Map((balances.data?.balances ?? []).map((b) => [b.symbol, b.amount]));
   const holdings = swappable.filter((a) => /[1-9]/.test(held.get(a.symbol) ?? ""));
+  // Each chain's own coin, for the small chain badge on tokens.
+  const chainIcons = new Map(swappable.filter((a) => a.isToken === false).map((a) => [chainKey(a), a.symbol]));
 
   const from = holdings.find((a) => a.symbol === fromSymbol) ?? holdings[0];
   const targets = swappable.filter((a) => a.symbol !== from?.symbol);
@@ -187,6 +201,8 @@ export function Swap() {
   const pickerCoins: PickerCoin[] = (picker === "from" ? holdings : targets).map((a) => ({
     symbol: a.symbol,
     chainName: a.chainName,
+    chainId: a.chainId,
+    isToken: a.isToken,
     decimals: a.decimals,
     balance: /[1-9]/.test(held.get(a.symbol) ?? "") ? held.get(a.symbol) : undefined,
   }));
@@ -256,7 +272,12 @@ export function Swap() {
                     autoComplete="off"
                     aria-invalid={tooMuch || undefined}
                   />
-                  <CoinButton asset={from} label="Choose the coin to pay with" onClick={() => setPicker("from")} />
+                  <CoinButton
+                    asset={from}
+                    label="Choose the coin to pay with"
+                    chainIcons={chainIcons}
+                    onClick={() => setPicker("from")}
+                  />
                 </div>
                 <p className={styles.sub} data-tone={tooMuch ? "error" : undefined}>
                   {tooMuch
@@ -294,7 +315,12 @@ export function Swap() {
                       "0"
                     )}
                   </output>
-                  <CoinButton asset={to} label="Choose the coin to receive" onClick={() => setPicker("to")} />
+                  <CoinButton
+                    asset={to}
+                    label="Choose the coin to receive"
+                    chainIcons={chainIcons}
+                    onClick={() => setPicker("to")}
+                  />
                 </div>
                 <p className={styles.sub} data-tone={quoteError ? "error" : undefined}>
                   {quoteError ?? (quote?.receiveUsd && !pricing ? money(quote.receiveUsd) : " ")}
@@ -365,6 +391,7 @@ export function Swap() {
                 type="submit"
                 className={`btn btn--primary btn--block ${styles.action}`}
                 disabled={!quote || pricing || busy || tooMuch}
+                aria-busy={busy || undefined}
               >
                 {busy && <span className={styles.spinner} aria-hidden="true" />}
                 {action}
@@ -388,6 +415,7 @@ export function Swap() {
           title={picker === "from" ? "Pay with" : "Receive"}
           coins={pickerCoins}
           selected={picker === "from" ? from?.symbol : to?.symbol}
+          chainIcons={chainIcons}
           onPick={(symbol) => pick(picker, symbol)}
           onClose={() => setPicker(null)}
         />
