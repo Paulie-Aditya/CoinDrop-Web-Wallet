@@ -27,6 +27,8 @@ const paths: Record<string, string> = {
     "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3",
   x: "M18 6 6 18 M6 6l12 12",
   swap: "M8 3 4 7l4 4 M4 7h16 M16 21l4-4-4-4 M20 17H4",
+  arrowDown: "M12 5v14 M18 13l-6 6-6-6",
+  search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z M21 21l-4.3-4.3",
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

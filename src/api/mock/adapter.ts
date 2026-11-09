@@ -76,12 +76,15 @@ function mockQuote(body: { fromSymbol: string; toSymbol: string; amount: string 
   const out = (usdIn * 0.985) / to.usd; // ~1% CoinDrop fee + venue costs
   const sameChain = from.chainName === to.chainName;
   const toUnits = (v: number) => BigInt(Math.floor(v * 10 ** Math.min(to.decimals, 12))) * 10n ** BigInt(Math.max(0, to.decimals - 12));
+  // ~$0.40 of gas to send it out of the hot wallet, in the from-coin's units.
+  const fee = BigInt(Math.floor((0.4 / from.usd) * 10 ** Math.min(from.decimals, 12))) * 10n ** BigInt(Math.max(0, from.decimals - 12));
+  const swapAmount = BigInt(body.amount) - fee;
+  if (swapAmount <= 0n) return null;
   return {
-    token: btoa(JSON.stringify({ ...body, out: toUnits(out).toString(), min: toUnits(out * 0.99).toString() })),
-    from: { symbol: from.symbol, decimals: from.decimals, amount: body.amount },
+    token: btoa(JSON.stringify({ ...body, fee: fee.toString(), out: toUnits(out).toString(), min: toUnits(out * 0.99).toString() })),
+    from: { symbol: from.symbol, decimals: from.decimals, amount: body.amount, swapAmount: swapAmount.toString() },
     to: { symbol: to.symbol, decimals: to.decimals, amount: toUnits(out).toString(), minAmount: toUnits(out * 0.99).toString() },
-    venue: sameChain ? "uniswap" : "swapkit",
-    provider: sameChain ? null : "near",
+    networkFee: fee.toString(),
     feeBps: 100,
     etaSeconds: sameChain ? 30 : 75,
     amountUsd: usdIn.toFixed(2),
@@ -187,9 +190,7 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     const swap = {
       id: mockSwaps.length + 1, status: "pending" as const, progress: "awaiting_deposit" as const,
       fromSymbol: from.symbol, toSymbol: to.symbol, fromDecimals: from.decimals, toDecimals: to.decimals,
-      amountIn: q.amount, expectedOut: q.out, minOut: q.min, amountOut: null,
-      venue: from.chainName === to.chainName ? "uniswap" : "swapkit",
-      provider: from.chainName === to.chainName ? null : "near", feeBps: 100,
+      amountIn: q.amount, networkFee: q.fee, expectedOut: q.out, minOut: q.min, amountOut: null, feeBps: 100,
       depositTxHash: null, createdAt: new Date().toISOString(), settledAt: null, startedAt: Date.now(),
     };
     mockSwaps.unshift(swap);

@@ -250,10 +250,11 @@ export interface SwapQuoteInput {
 
 export interface SwapQuote {
   token: string;
-  from: { symbol: string; decimals: number; amount: string };
+  /** amount: what leaves the balance; swapAmount: what's swapped after the network fee */
+  from: { symbol: string; decimals: number; amount: string; swapAmount: string };
   to: { symbol: string; decimals: number; amount: string; minAmount: string };
-  venue: string;
-  provider: string | null;
+  /** gas for sending the coins out of CoinDrop's wallet, in the from-currency */
+  networkFee: string;
   feeBps: number;
   etaSeconds: number;
   amountUsd: string | null;
@@ -282,13 +283,13 @@ export interface Swap {
   toSymbol: string;
   fromDecimals: number;
   toDecimals: number;
+  /** what left the balance, network fee included */
   amountIn: string;
+  networkFee: string;
   expectedOut: string;
   minOut: string;
   /** set once completed */
   amountOut: string | null;
-  venue: string;
-  provider: string | null;
   feeBps: number;
   depositTxHash: string | null;
   createdAt: string;

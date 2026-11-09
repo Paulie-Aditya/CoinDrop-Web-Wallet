@@ -14,8 +14,25 @@ export function useSwapAssets() {
   });
 }
 
-export function useSwapQuote() {
-  return useMutation({ mutationFn: (input: SwapQuoteInput) => quoteSwap(input) });
+/** How often a shown quote is re-priced; well inside the backend's quote lifetime. */
+export const QUOTE_REFRESH_MS = 45_000;
+
+export const quoteKey = (input: SwapQuoteInput | null) =>
+  ["wallet", "swap", "quote", input?.fromSymbol, input?.toSymbol, input?.amount] as const;
+
+/** A live price for the pair and amount, re-quoted every QUOTE_REFRESH_MS
+ *  while the page is visible. `paused` holds it still while a swap starts. */
+export function useLiveSwapQuote(input: SwapQuoteInput | null, paused: boolean) {
+  return useQuery({
+    queryKey: quoteKey(input),
+    queryFn: () => quoteSwap(input as SwapQuoteInput),
+    enabled: input !== null,
+    retry: false,
+    staleTime: QUOTE_REFRESH_MS,
+    gcTime: QUOTE_REFRESH_MS,
+    refetchOnWindowFocus: false,
+    refetchInterval: paused ? false : QUOTE_REFRESH_MS,
+  });
 }
 
 /** Balance and history change the moment a swap starts and again when it settles. */

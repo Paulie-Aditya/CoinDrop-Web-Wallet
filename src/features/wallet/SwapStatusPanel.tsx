@@ -1,12 +1,53 @@
 import { useEffect } from "react";
+import { CoinChip } from "../../components/CoinChip";
 import { CoinLoader } from "../../components/CoinLoader";
+import { Icon } from "../../components/Icon";
 import { StateBlock } from "../../components/StateBlock";
 import { SuccessCheck } from "../../components/SuccessCheck";
 import { toApiError } from "../../api/http";
 import { formatUnits } from "../../lib/format";
+import type { Swap } from "../../api/types";
 import { refreshAfterSwap, useSwapStatus } from "./useSwap";
-import { PROGRESS_COPY, routeLabel } from "./swapLabels";
-import styles from "../../pages/WalletActions.module.css";
+import { ROUTE_NAME } from "./swapLabels";
+import styles from "../../pages/Swap.module.css";
+
+type StepState = "done" | "active" | "todo";
+
+/** Which of the three steps a swap is on: sending, swapping, credited. */
+function stepStates(swap: Swap): [StepState, StepState, StepState] {
+  if (swap.status === "completed") return ["done", "done", "done"];
+  if (swap.progress === "exchanging" || swap.progress === "completed") return ["done", "active", "todo"];
+  return ["active", "todo", "todo"];
+}
+
+function Header({ swap }: { swap: Swap }) {
+  const done = swap.status === "completed";
+  const received = done ? swap.amountOut ?? swap.expectedOut : swap.expectedOut;
+  return (
+    <div className={styles.statusHead}>
+      <span className={styles.statusSide}>
+        <CoinChip symbol={swap.fromSymbol} size={34} />
+        <span className={styles.statusAmount}>
+          <strong>
+            {formatUnits(swap.amountIn, swap.fromDecimals)} {swap.fromSymbol}
+          </strong>
+          <small>You paid</small>
+        </span>
+      </span>
+      <Icon name="arrowRight" size={18} className={styles.statusArrow} />
+      <span className={styles.statusSide}>
+        <CoinChip symbol={swap.toSymbol} size={34} />
+        <span className={styles.statusAmount}>
+          <strong>
+            {done ? "" : "≈ "}
+            {formatUnits(received, swap.toDecimals)} {swap.toSymbol}
+          </strong>
+          <small>{done ? "You received" : "You'll receive"}</small>
+        </span>
+      </span>
+    </div>
+  );
+}
 
 export function SwapStatusPanel({ id }: { id: number }) {
   const { data, isPending, isError, error, refetch } = useSwapStatus(id);
@@ -24,38 +65,11 @@ export function SwapStatusPanel({ id }: { id: number }) {
     );
   }
 
-  const paid = `${formatUnits(data.amountIn, data.fromDecimals)} ${data.fromSymbol}`;
-
-  if (data.status === "completed") {
-    return (
-      <div>
-        <div className={styles.doneWrap} style={{ paddingTop: 0 }}>
-          <SuccessCheck />
-          <p className="eyebrow" style={{ marginTop: "0.6rem" }}>Swap complete</p>
-        </div>
-        <div className={styles.breakdown} style={{ marginTop: "0.9rem" }}>
-          <div className={styles.breakdownRow}>
-            <span className={styles.breakdownLabel}>You paid</span>
-            <span className={`${styles.breakdownAmount} mono`}>{paid}</span>
-          </div>
-          <div className={styles.breakdownRow} data-emphasis="true">
-            <span className={styles.breakdownLabel}>You received</span>
-            <span className={`${styles.breakdownAmount} mono`}>
-              {formatUnits(data.amountOut ?? "0", data.toDecimals)} {data.toSymbol}
-            </span>
-          </div>
-        </div>
-        <p className={styles.hint} style={{ marginTop: "0.9rem" }}>
-          It's in your balance now.
-        </p>
-      </div>
-    );
-  }
-
   if (data.status === "refunded") {
     return (
       <StateBlock title="Swap didn't go through">
-        Your {paid} is back in your balance.
+        Your {data.fromSymbol} is back in your balance. If the coins had already been sent, the network fee
+        for sending them isn't returned.
       </StateBlock>
     );
   }
@@ -63,33 +77,66 @@ export function SwapStatusPanel({ id }: { id: number }) {
   if (data.status === "needs_review") {
     return (
       <StateBlock tone="error" title="This swap needs a manual check">
-        Something unusual happened while swapping {paid}. Support will review it and credit
-        your balance — reach out with swap #{data.id} if you have questions.
+        Something unusual happened while swapping {formatUnits(data.amountIn, data.fromDecimals)}{" "}
+        {data.fromSymbol}. Support will review it and credit your balance. Reach out with swap #{data.id} if
+        you have questions.
       </StateBlock>
     );
   }
 
+  const [sending, swapping, credited] = stepStates(data);
+  const steps: { state: StepState; title: string; detail: string }[] = [
+    { state: sending, title: `Sending your ${data.fromSymbol}`, detail: "From CoinDrop's wallet to the swap" },
+    { state: swapping, title: `Swapping on ${ROUTE_NAME}`, detail: `${data.fromSymbol} into ${data.toSymbol}` },
+    { state: credited, title: "Added to your balance", detail: `Your ${data.toSymbol} lands in your CoinDrop wallet` },
+  ];
+
   return (
     <div>
-      <CoinLoader label={data.progress ? PROGRESS_COPY[data.progress] : "Starting your swap"} />
-      <div className={styles.breakdown} style={{ marginTop: "0.9rem" }}>
-        <div className={styles.breakdownRow}>
-          <span className={styles.breakdownLabel}>Swapping</span>
-          <span className={`${styles.breakdownAmount} mono`}>{paid}</span>
+      {data.status === "completed" && (
+        <div style={{ display: "grid", placeItems: "center", marginBottom: "1rem" }}>
+          <SuccessCheck />
         </div>
-        <div className={styles.breakdownRow} data-emphasis="true">
-          <span className={styles.breakdownLabel}>For about</span>
-          <span className={`${styles.breakdownAmount} mono`}>
-            {formatUnits(data.expectedOut, data.toDecimals)} {data.toSymbol}
-          </span>
+      )}
+      <Header swap={data} />
+
+      <ol className={styles.steps}>
+        {steps.map((step) => (
+          <li key={step.title} className={styles.step} data-state={step.state}>
+            <span className={styles.dot} aria-hidden="true">
+              {step.state === "done" && <Icon name="check" size={11} strokeWidth={3} />}
+            </span>
+            <span className={styles.stepText}>
+              <strong>{step.title}</strong>
+              <small>{step.detail}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <dl className={styles.statusFacts}>
+        <div>
+          <dt>Network fee</dt>
+          <dd className="mono">
+            {formatUnits(data.networkFee ?? "0", data.fromDecimals)} {data.fromSymbol}
+          </dd>
         </div>
-        <div className={styles.breakdownRow}>
-          <span className={styles.breakdownLabel}>Route</span>
-          <span className={styles.breakdownAmount}>{routeLabel(data.venue, data.provider)}</span>
+        <div>
+          <dt>Minimum received</dt>
+          <dd className="mono">
+            {formatUnits(data.minOut, data.toDecimals)} {data.toSymbol}
+          </dd>
         </div>
-      </div>
-      <p className={styles.hint} style={{ marginTop: "0.9rem" }}>
-        You can leave this page — the swap keeps going and lands in your balance when it's done.
+        <div>
+          <dt>Route</dt>
+          <dd>{ROUTE_NAME}</dd>
+        </div>
+      </dl>
+
+      <p className={styles.statusNote}>
+        {data.status === "completed"
+          ? "It's in your balance now."
+          : "You can leave this page. The swap keeps going and lands in your balance when it's done."}
       </p>
     </div>
   );

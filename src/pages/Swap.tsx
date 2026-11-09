@@ -3,107 +3,149 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { PageShell } from "../components/PageShell";
 import { Icon } from "../components/Icon";
-import { Button } from "../components/Button";
+import { CoinChip } from "../components/CoinChip";
 import { StateBlock } from "../components/StateBlock";
 import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
-import { useCountdown } from "../lib/useCountdown";
+import { useDebounced } from "../lib/useDebounced";
+import { queryClient } from "../lib/queryClient";
 import { useCurrency } from "../features/currency/CurrencyContext";
 import { useBalances } from "../features/wallet/useBalances";
-import { useSwapAssets, useSwapConfirm, useSwapQuote } from "../features/wallet/useSwap";
+import {
+  QUOTE_REFRESH_MS,
+  quoteKey,
+  useLiveSwapQuote,
+  useSwapAssets,
+  useSwapConfirm,
+} from "../features/wallet/useSwap";
 import { SwapStatusPanel } from "../features/wallet/SwapStatusPanel";
 import { SwapHistoryCard } from "../features/wallet/SwapHistoryCard";
-import { etaLabel, feeLabel, routeLabel } from "../features/wallet/swapLabels";
-import type { SwapQuote } from "../api/types";
-import styles from "./WalletActions.module.css";
+import { CoinPicker, type PickerCoin } from "../features/wallet/CoinPicker";
+import { ROUTE_NAME, etaLabel, feeLabel } from "../features/wallet/swapLabels";
+import type { SwapAsset, SwapQuote } from "../api/types";
+import styles from "./Swap.module.css";
 
-// Venue prices move; a quote older than this gets refreshed rather than
-// confirmed (the backend would re-price it anyway).
-const QUOTE_FRESH_SECONDS = 60;
+/** Smallest units for a typed amount, or null when there's nothing to price. */
+function unitsOf(amount: string, decimals: number): string | null {
+  if (!/^\d*\.?\d+$/.test(amount.trim())) return null;
+  const units = parseUnits(amount, decimals);
+  return /[1-9]/.test(units) ? units : null;
+}
+
+/** "1 USDC = 0.000312 ETH", from what's actually swapped. */
+function rateLabel(q: SwapQuote): string | null {
+  const paid = Number(formatUnitsPlain(q.from.swapAmount ?? q.from.amount, q.from.decimals));
+  const got = Number(formatUnitsPlain(q.to.amount, q.to.decimals));
+  if (!(paid > 0) || !(got > 0)) return null;
+  const rate = got / paid;
+  const shown = rate >= 1 ? rate.toLocaleString("en-US", { maximumFractionDigits: 4 }) : rate.toPrecision(4);
+  return `1 ${q.from.symbol} = ${shown} ${q.to.symbol}`;
+}
+
+function CoinButton({ asset, label, onClick }: { asset?: SwapAsset; label: string; onClick: () => void }) {
+  return (
+    <button type="button" className={styles.coin} onClick={onClick} aria-label={label}>
+      {asset ? (
+        <>
+          <CoinChip symbol={asset.symbol} size={30} />
+          <span className={styles.coinText}>
+            <strong>{asset.symbol}</strong>
+            <small>{asset.chainName}</small>
+          </span>
+        </>
+      ) : (
+        <span className={styles.coinText}>
+          <strong>Choose</strong>
+        </span>
+      )}
+      <Icon name="chevronDown" size={15} />
+    </button>
+  );
+}
 
 export function Swap() {
   const { money } = useCurrency();
   const balances = useBalances();
   const assets = useSwapAssets();
-
-  const swappable = assets.data?.assets ?? [];
-  const swappableSymbols = new Set(swappable.map((a) => a.symbol));
-  const holdings = (balances.data?.balances ?? []).filter(
-    (b) => /[1-9]/.test(b.amount) && swappableSymbols.has(b.symbol),
-  );
+  const confirm = useSwapConfirm();
 
   const [fromSymbol, setFromSymbol] = useState("");
   const [toSymbol, setToSymbol] = useState("");
   const [amount, setAmount] = useState("");
-  const [quote, setQuote] = useState<SwapQuote | null>(null);
-  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [picker, setPicker] = useState<"from" | "to" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [swapId, setSwapId] = useState<number | null>(null);
 
-  const remaining = useCountdown(expiresAt);
-  const expired = quote !== null && remaining <= 0;
+  const swappable = assets.data?.assets ?? [];
+  const held = new Map((balances.data?.balances ?? []).map((b) => [b.symbol, b.amount]));
+  const holdings = swappable.filter((a) => /[1-9]/.test(held.get(a.symbol) ?? ""));
 
-  const quoteMutation = useSwapQuote();
-  const confirmMutation = useSwapConfirm();
+  const from = holdings.find((a) => a.symbol === fromSymbol) ?? holdings[0];
+  const targets = swappable.filter((a) => a.symbol !== from?.symbol);
+  const to =
+    targets.find((a) => a.symbol === toSymbol) ??
+    targets.find((a) => a.chainName !== from?.chainName) ??
+    targets[0];
+  const balance = from ? held.get(from.symbol) ?? "0" : "0";
 
-  const activeFrom = fromSymbol || holdings[0]?.symbol || "";
-  const selected = holdings.find((b) => b.symbol === activeFrom);
-  const targets = swappable.filter((a) => a.symbol !== activeFrom);
-  const activeTo = targets.some((a) => a.symbol === toSymbol) ? toSymbol : targets[0]?.symbol ?? "";
+  const units = from ? unitsOf(amount, from.decimals) : null;
+  const tooMuch = units !== null && BigInt(units) > BigInt(balance);
+  const settled = useDebounced(units, 600);
+  const input =
+    from && to && units !== null && !tooMuch && settled === units
+      ? { fromSymbol: from.symbol, toSymbol: to.symbol, amount: units }
+      : null;
 
-  function showQuote(q: SwapQuote, receivedAt: number) {
-    setQuote(q);
-    setExpiresAt(receivedAt + Math.min(q.expiresInSeconds, QUOTE_FRESH_SECONDS) * 1000);
-  }
+  const live = useLiveSwapQuote(input, confirm.isPending);
+  const quote = input ? live.data : undefined;
+  const pricing = units !== null && !tooMuch && (settled !== units || (live.isFetching && !quote));
+  const quoteError = input && live.isError && !live.isFetching ? toApiError(live.error).message : null;
 
-  function requestQuote() {
-    if (!selected || !activeTo) return;
+  function pick(side: "from" | "to", symbol: string) {
     setNotice(null);
-    quoteMutation.reset();
-    confirmMutation.reset();
-    quoteMutation.mutate(
-      { fromSymbol: activeFrom, toSymbol: activeTo, amount: parseUnits(amount.trim(), selected.decimals) },
-      { onSuccess: (q) => showQuote(q, Date.now()) },
-    );
+    if (side === "from") {
+      if (symbol === to?.symbol) setToSymbol(from?.symbol ?? "");
+      setFromSymbol(symbol);
+      setAmount("");
+    } else {
+      setToSymbol(symbol);
+    }
   }
 
-  function handleReview(e: FormEvent) {
+  const canFlip = !!to && holdings.some((a) => a.symbol === to.symbol);
+  function flip() {
+    if (!from || !to || !canFlip) return;
+    setFromSymbol(to.symbol);
+    setToSymbol(from.symbol);
+    setAmount("");
+    setNotice(null);
+  }
+
+  function handleSwap(e: FormEvent) {
     e.preventDefault();
-    requestQuote();
-  }
-
-  function handleConfirm() {
-    if (!quote) return;
+    if (!quote || !input) return;
     setNotice(null);
-    confirmMutation.mutate(quote.token, {
+    confirm.mutate(quote.token, {
       onSuccess: ({ swap }) => setSwapId(swap.id),
       onError: (err) => {
-        // The price moved since the quote: show the new one and ask again.
+        // The price moved: show the new quote in place and let them swap again.
         const fresh = axios.isAxiosError(err) ? (err.response?.data as { quote?: SwapQuote })?.quote : undefined;
         if (fresh) {
-          showQuote(fresh, Date.now());
-          setNotice("The price changed. Review the new quote and confirm again.");
-          confirmMutation.reset();
+          queryClient.setQueryData(quoteKey(input), fresh);
+          setNotice("The price changed. Check the new amount and swap again.");
+          confirm.reset();
+        } else if (axios.isAxiosError(err) && err.response?.status === 409) {
+          void live.refetch();
         }
       },
     });
   }
 
   function startOver() {
-    setQuote(null);
-    setExpiresAt(null);
-    setNotice(null);
     setSwapId(null);
-    quoteMutation.reset();
-    confirmMutation.reset();
-  }
-
-  function flip() {
-    if (!activeTo) return;
-    const nextFrom = holdings.some((b) => b.symbol === activeTo) ? activeTo : activeFrom;
-    setToSymbol(activeFrom);
-    setFromSymbol(nextFrom);
     setAmount("");
+    setNotice(null);
+    confirm.reset();
   }
 
   const back = (
@@ -116,237 +158,240 @@ export function Swap() {
   if (swapId !== null) {
     return (
       <PageShell>
-        {back}
-        <section className={`panel ${styles.card}`}>
-          <SwapStatusPanel id={swapId} />
-          <div className={styles.actions}>
-            <Button type="button" variant="outline" onClick={startOver}>
+        <div className={styles.stage}>
+          {back}
+          <section className={`${styles.glass} ${styles.statusCard}`}>
+            <SwapStatusPanel id={swapId} />
+            <button type="button" className={`btn btn--outline btn--block ${styles.again}`} onClick={startOver}>
               Make another swap
-            </Button>
+            </button>
+          </section>
+          <div className={styles.history}>
+            <SwapHistoryCard />
           </div>
-        </section>
-        <div style={{ marginTop: "1.5rem" }}>
-          <SwapHistoryCard />
         </div>
       </PageShell>
     );
   }
 
   const feeBps = assets.data?.feeBps ?? 100;
+  const busy = confirm.isPending;
+
+  let action = `Swap ${from?.symbol ?? ""} for ${to?.symbol ?? ""}`;
+  if (busy) action = "Starting swap…";
+  else if (units === null) action = "Enter an amount";
+  else if (tooMuch) action = `Not enough ${from?.symbol}`;
+  else if (pricing) action = "Finding the best price…";
+  else if (quoteError) action = "Can't swap this right now";
+
+  const pickerCoins: PickerCoin[] = (picker === "from" ? holdings : targets).map((a) => ({
+    symbol: a.symbol,
+    chainName: a.chainName,
+    decimals: a.decimals,
+    balance: /[1-9]/.test(held.get(a.symbol) ?? "") ? held.get(a.symbol) : undefined,
+  }));
 
   return (
     <PageShell>
-      {back}
-
-      <h1 className={styles.title}>Swap</h1>
-      <p className={styles.lede}>
-        Turn one coin in your balance into another. You'll see the rate, the route and CoinDrop's{" "}
-        {feeLabel(feeBps)} fee before anything moves.
-      </p>
-
-      {balances.isPending || assets.isPending ? null : assets.isError ? (
-        <section className={`panel ${styles.card}`}>
-          <StateBlock tone="error" title="Swaps aren't available" onRetry={() => void assets.refetch()}>
-            {toApiError(assets.error).message}
-          </StateBlock>
-        </section>
-      ) : holdings.length === 0 ? (
-        <section className={`panel ${styles.card}`}>
-          <StateBlock title="Nothing to swap">
-            You don't hold any coin that can be swapped yet. Deposit or get tipped, then come back.
-          </StateBlock>
-        </section>
-      ) : !quote ? (
-        <form className={`panel ${styles.card}`} onSubmit={handleReview}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="sw-from">
-              From
-            </label>
-            <select
-              id="sw-from"
-              className={styles.select}
-              value={activeFrom}
-              onChange={(e) => {
-                setFromSymbol(e.target.value);
-                setAmount("");
-              }}
-            >
-              {holdings.map((b) => (
-                <option key={b.symbol} value={b.symbol}>
-                  {b.symbol}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="sw-amount">
-              Amount
-            </label>
-            <div className={styles.row}>
-              <input
-                id="sw-amount"
-                className={styles.input}
-                value={amount}
-                onChange={(e) => {
-                  if (/^\d*\.?\d*$/.test(e.target.value)) setAmount(e.target.value);
-                }}
-                placeholder="0.00"
-                inputMode="decimal"
-                autoComplete="off"
-                required
-              />
-              {selected && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setAmount(formatUnitsPlain(selected.amount, selected.decimals))}
-                >
-                  Max
-                </button>
-              )}
-            </div>
-            {selected && (
-              <span className={styles.hint}>
-                You hold {formatUnitsPlain(selected.amount, selected.decimals)} {selected.symbol}
-              </span>
-            )}
-          </div>
-
-          <div className={styles.row} style={{ justifyContent: "center" }}>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              onClick={flip}
-              aria-label="Swap direction"
-              disabled={!activeTo}
-            >
-              <Icon name="swap" size={16} style={{ transform: "rotate(90deg)" }} />
-            </button>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="sw-to">
-              To
-            </label>
-            <select
-              id="sw-to"
-              className={styles.select}
-              value={activeTo}
-              onChange={(e) => setToSymbol(e.target.value)}
-            >
-              {targets.map((a) => (
-                <option key={a.symbol} value={a.symbol}>
-                  {a.symbol} · {a.chainName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {quoteMutation.isError && (
-            <p className={styles.error}>{toApiError(quoteMutation.error).message}</p>
-          )}
-
-          <div className={styles.actions}>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={quoteMutation.isPending || !activeTo || !(Number(amount) > 0)}
-            >
-              {quoteMutation.isPending ? "Finding the best route…" : "Review swap"}
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <section className={`panel ${styles.card}`}>
-          <p className="eyebrow">Confirm swap</p>
-
-          <div className={styles.breakdown}>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>You pay</span>
-              <span className={styles.breakdownAmount}>
-                <span className="mono">
-                  {formatUnits(quote.from.amount, quote.from.decimals)} {quote.from.symbol}
-                </span>
-                {quote.amountUsd && (
-                  <span className={`${styles.breakdownUsd} mono`}>{money(quote.amountUsd)}</span>
-                )}
-              </span>
-            </div>
-            <div className={styles.breakdownRow} data-emphasis="true">
-              <span className={styles.breakdownLabel}>You'll receive about</span>
-              <span className={styles.breakdownAmount}>
-                <span className="mono">
-                  {formatUnits(quote.to.amount, quote.to.decimals)} {quote.to.symbol}
-                </span>
-                {quote.receiveUsd && (
-                  <span className={`${styles.breakdownUsd} mono`}>{money(quote.receiveUsd)}</span>
-                )}
-              </span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>Minimum received</span>
-              <span className={`${styles.breakdownAmount} mono`}>
-                {formatUnits(quote.to.minAmount, quote.to.decimals)} {quote.to.symbol}
-              </span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>CoinDrop fee</span>
-              <span className={styles.breakdownAmount}>{feeLabel(quote.feeBps)}, included in the rate</span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>Route</span>
-              <span className={styles.breakdownAmount}>{routeLabel(quote.venue, quote.provider)}</span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span className={styles.breakdownLabel}>Estimated time</span>
-              <span className={styles.breakdownAmount}>{etaLabel(quote.etaSeconds)}</span>
-            </div>
-          </div>
-
-          <p className={styles.hint} style={{ marginTop: "0.9rem" }}>
-            Confirming takes {formatUnits(quote.from.amount, quote.from.decimals)} {quote.from.symbol}{" "}
-            from your balance now. The {quote.to.symbol} is added when the swap completes; if it
-            fails, your {quote.from.symbol} comes back.
+      <div className={styles.stage}>
+        {back}
+        <header className={styles.intro}>
+          <h1 className={styles.title}>Swap</h1>
+          <p className={styles.lede}>
+            Turn one coin in your balance into another, at the best price {ROUTE_NAME} finds. CoinDrop's{" "}
+            {feeLabel(feeBps)} fee is included in the rate.
           </p>
+        </header>
 
-          <div className={styles.countdown} data-expired={expired}>
-            {expired ? <span>This quote has expired.</span> : <span>Quote expires in {remaining}s</span>}
+        {balances.isPending || assets.isPending ? (
+          <div className={`${styles.glass} ${styles.swap}`} aria-busy="true">
+            <span className={`${styles.skeleton} ${styles.skeletonBlock}`} />
+            <span className={`${styles.skeleton} ${styles.skeletonBlock}`} />
           </div>
+        ) : assets.isError ? (
+          <section className={`${styles.glass} ${styles.statusCard}`}>
+            <StateBlock tone="error" title="Swaps aren't available" onRetry={() => void assets.refetch()}>
+              {toApiError(assets.error).message}
+            </StateBlock>
+          </section>
+        ) : holdings.length === 0 ? (
+          <section className={`${styles.glass} ${styles.statusCard}`}>
+            <StateBlock title="Nothing to swap yet">
+              You don't hold a coin that can be swapped. Deposit or get tipped, then come back.
+            </StateBlock>
+          </section>
+        ) : (
+          <form className={`${styles.glass} ${styles.swap}`} onSubmit={handleSwap}>
+            <fieldset disabled={busy} className={styles.fields}>
+              <div className={styles.panel}>
+                <div className={styles.panelHead}>
+                  <label htmlFor="swap-amount">You pay</label>
+                  {from && (
+                    <span className={styles.balance}>
+                      Balance <span className="mono">{formatUnits(balance, from.decimals)}</span>
+                      <button
+                        type="button"
+                        className={styles.max}
+                        onClick={() => setAmount(formatUnitsPlain(balance, from.decimals))}
+                      >
+                        Max
+                      </button>
+                    </span>
+                  )}
+                </div>
+                <div className={styles.panelRow}>
+                  <input
+                    id="swap-amount"
+                    className={styles.amount}
+                    value={amount}
+                    onChange={(e) => {
+                      const next = e.target.value.replace(",", ".");
+                      if (/^\d*\.?\d*$/.test(next)) {
+                        setAmount(next);
+                        setNotice(null);
+                      }
+                    }}
+                    placeholder="0"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    aria-invalid={tooMuch || undefined}
+                  />
+                  <CoinButton asset={from} label="Choose the coin to pay with" onClick={() => setPicker("from")} />
+                </div>
+                <p className={styles.sub} data-tone={tooMuch ? "error" : undefined}>
+                  {tooMuch
+                    ? `You hold ${formatUnits(balance, from?.decimals ?? 0)} ${from?.symbol}`
+                    : quote?.amountUsd
+                      ? money(quote.amountUsd)
+                      : " "}
+                </p>
+              </div>
 
-          {notice && <p className={styles.hint}>{notice}</p>}
-          {confirmMutation.isError && !notice && (
-            <p className={styles.error}>{toApiError(confirmMutation.error).message}</p>
-          )}
-          {quoteMutation.isError && (
-            <p className={styles.error}>{toApiError(quoteMutation.error).message}</p>
-          )}
-
-          <div className={styles.actions}>
-            {expired ? (
-              <Button type="button" variant="primary" onClick={requestQuote} disabled={quoteMutation.isPending}>
-                {quoteMutation.isPending ? "Getting a new quote…" : "Get a new quote"}
-              </Button>
-            ) : (
-              <Button
+              <button
                 type="button"
-                variant="primary"
-                onClick={handleConfirm}
-                disabled={confirmMutation.isPending}
+                className={styles.flip}
+                onClick={flip}
+                disabled={!canFlip}
+                aria-label="Swap the two coins"
+                title={canFlip ? "Swap the two coins" : `You don't hold any ${to?.symbol ?? ""}`}
               >
-                {confirmMutation.isPending ? "Starting swap…" : "Confirm swap"}
-              </Button>
-            )}
-            <Button type="button" variant="outline" onClick={startOver} disabled={confirmMutation.isPending}>
-              Cancel
-            </Button>
-          </div>
-        </section>
-      )}
+                <Icon name="arrowDown" size={17} />
+              </button>
 
-      <div style={{ marginTop: "1.5rem" }}>
-        <SwapHistoryCard />
+              <div className={styles.panel}>
+                <div className={styles.panelHead}>
+                  <span>You receive</span>
+                </div>
+                <div className={styles.panelRow}>
+                  <output className={styles.amount} data-empty={!quote || pricing || undefined} aria-live="polite">
+                    {pricing ? (
+                      <span className={`${styles.skeleton} ${styles.skeletonAmount}`} />
+                    ) : quote ? (
+                      <span className={styles.tick} key={quote.to.amount}>
+                        {formatUnits(quote.to.amount, quote.to.decimals)}
+                      </span>
+                    ) : (
+                      "0"
+                    )}
+                  </output>
+                  <CoinButton asset={to} label="Choose the coin to receive" onClick={() => setPicker("to")} />
+                </div>
+                <p className={styles.sub} data-tone={quoteError ? "error" : undefined}>
+                  {quoteError ?? (quote?.receiveUsd && !pricing ? money(quote.receiveUsd) : " ")}
+                </p>
+              </div>
+
+              {quote && !pricing && (
+                <details className={styles.details}>
+                  <summary>
+                    <span className={styles.rate}>{rateLabel(quote)}</span>
+                    {!busy && (
+                      <span
+                        className={styles.ring}
+                        key={live.dataUpdatedAt}
+                        style={{ animationDuration: `${QUOTE_REFRESH_MS}ms` }}
+                        title="Time until this price refreshes"
+                      />
+                    )}
+                    <Icon name="chevronDown" size={14} className={styles.chevron} />
+                  </summary>
+                  <dl>
+                    <div>
+                      <dt>Network fee</dt>
+                      <dd className="mono">
+                        {formatUnits(quote.networkFee ?? "0", quote.from.decimals)} {quote.from.symbol}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Swapped</dt>
+                      <dd className="mono">
+                        {formatUnits(quote.from.swapAmount ?? quote.from.amount, quote.from.decimals)} {quote.from.symbol}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Minimum received</dt>
+                      <dd className="mono">
+                        {formatUnits(quote.to.minAmount, quote.to.decimals)} {quote.to.symbol}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>CoinDrop fee</dt>
+                      <dd>{feeLabel(quote.feeBps)}, in the rate</dd>
+                    </div>
+                    <div>
+                      <dt>Route</dt>
+                      <dd>{ROUTE_NAME}</dd>
+                    </div>
+                    <div>
+                      <dt>Estimated time</dt>
+                      <dd>{etaLabel(quote.etaSeconds)}</dd>
+                    </div>
+                  </dl>
+                </details>
+              )}
+
+              {notice && (
+                <p className={styles.notice} role="status">
+                  {notice}
+                </p>
+              )}
+              {confirm.isError && !notice && (
+                <p className={styles.notice} data-tone="error" role="alert">
+                  {toApiError(confirm.error).message}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className={`btn btn--primary btn--block ${styles.action}`}
+                disabled={!quote || pricing || busy || tooMuch}
+              >
+                {busy && <span className={styles.spinner} aria-hidden="true" />}
+                {action}
+              </button>
+              <p className={styles.note}>
+                {quote && from
+                  ? `Confirming takes ${formatUnits(quote.from.amount, from.decimals)} ${from.symbol} from your balance, network fee included. If the swap fails, it comes back.`
+                  : "Nothing leaves your balance until you confirm."}
+              </p>
+            </fieldset>
+          </form>
+        )}
+
+        <div className={styles.history}>
+          <SwapHistoryCard />
+        </div>
       </div>
+
+      {picker && (
+        <CoinPicker
+          title={picker === "from" ? "Pay with" : "Receive"}
+          coins={pickerCoins}
+          selected={picker === "from" ? from?.symbol : to?.symbol}
+          onPick={(symbol) => pick(picker, symbol)}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </PageShell>
   );
 }

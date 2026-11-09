@@ -1,25 +1,7 @@
 import type { SwapProgress } from "../../api/types";
 
-const VENUES: Record<string, string> = {
-  "near-intents": "NEAR Intents",
-  swapkit: "SwapKit",
-  uniswap: "Uniswap",
-};
-
-const PROVIDERS: Record<string, string> = {
-  near: "NEAR Intents",
-};
-
-/** "swapkit" + "near" -> "SwapKit · NEAR Intents"; multi-hop providers join with →. */
-export function routeLabel(venue: string, provider: string | null): string {
-  const name = VENUES[venue] ?? venue;
-  if (!provider) return name;
-  const hops = provider
-    .split("+")
-    .map((p) => PROVIDERS[p] ?? p.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()))
-    .join(" → ");
-  return `${name} · ${hops}`;
-}
+/** Users only ever see this; which venue CrossFare used stays in the database. */
+export const ROUTE_NAME = "Crossfare";
 
 export function etaLabel(seconds: number): string {
   if (!seconds) return "A few minutes";

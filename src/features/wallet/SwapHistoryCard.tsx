@@ -5,7 +5,7 @@ import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
 import type { Swap, SwapStatusValue } from "../../api/types";
 import { useSwapStatus, useSwaps } from "./useSwap";
-import { PROGRESS_COPY, routeLabel } from "./swapLabels";
+import { PROGRESS_COPY, ROUTE_NAME } from "./swapLabels";
 import styles from "./cards.module.css";
 
 const STATUS_LABEL: Record<SwapStatusValue, string> = {
@@ -47,7 +47,7 @@ function SwapRow({ swap: initial }: { swap: Swap }) {
             {relativeTime(swap.createdAt)}
           </time>
           {" · "}
-          {routeLabel(swap.venue, swap.provider)}
+          {ROUTE_NAME}
         </span>
       </span>
       <span className={styles.rowAmount}>
