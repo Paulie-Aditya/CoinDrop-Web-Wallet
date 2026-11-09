@@ -292,10 +292,14 @@ export interface Swap {
   networkFee: string;
   expectedOut: string;
   minOut: string;
-  /** set once completed */
+  /** set once completed: what the chain shows arrived, not what was quoted */
   amountOut: string | null;
+  /** set once refunded: what came back, in the from currency */
+  amountRefunded: string | null;
   feeBps: number;
   depositTxHash: string | null;
+  /** the on-chain transfer the output was credited from */
+  payoutTxHash: string | null;
   createdAt: string;
   settledAt: string | null;
 }

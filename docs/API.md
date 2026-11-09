@@ -15,6 +15,12 @@ balances/transactions — keep the two in sync.
   no cached price.
 - **Errors are `{ "detail": "message" }`** with an appropriate status code —
   the frontend reads `detail`, not `message`.
+- **Rate limits answer `429 { "detail": "...", "retryAfter": 12 }`** (also a
+  `Retry-After` header) on send/withdraw estimate + confirm, swap quote +
+  confirm, and deposit addresses. Per user per minute: send 60, withdraw
+  estimate 20 / confirm 10, swap quote 12 / confirm 10, deposit 30; send
+  estimates also cap at 1000 a day. `withRateLimitRetry` (`src/api/http.ts`)
+  waits these out for loops like bulk send.
 
 ## `GET /auth/me`
 
@@ -208,6 +214,7 @@ a smallest-unit integer string, same convention as everywhere else.
   "toPublicId": "5",
   "toUsername": "paulieadi",
   "toHandle": null,
+  "toDiscordId": null,         // only when addressed by Discord id/username, never by publicId
   "symbol": "SOL",
   "decimals": 9,
   "amount": "1000000",
@@ -221,7 +228,8 @@ or platform fee. `toUsername`/`toHandle` are shown prominently before confirm
 — the only fat-finger check against a mistyped publicId. Error cases:
 `400 {"detail": "You can't send to yourself."}`,
 `404 {"detail": "Recipient not found."}`,
-`400 {"detail": "Insufficient balance."}`.
+`400 {"detail": "Insufficient balance."}` — checked first, so without a
+balance no recipient can be looked up.
 
 ## `POST /wallet/send/confirm`
 
@@ -229,7 +237,9 @@ Body: `{ "token": "..." }` → `{ "status": "sent" }`. Deducts the sender's
 balance and credits the recipient's — irreversible, and synchronous (no
 `withdrawal_queue`-style async status to poll; `"sent"` means it already
 happened). `409 {"detail": "This confirmation has expired. Estimate again."}`
-if the 30-second window has passed.
+if the 30-second window has passed. Each token sends once:
+`409 {"detail": "This send was already confirmed."}` on reuse (withdraw:
+`"This withdrawal was already confirmed."`).
 
 ## `GET /wallet/notifications`
 

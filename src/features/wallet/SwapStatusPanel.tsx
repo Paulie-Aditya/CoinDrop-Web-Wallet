@@ -68,8 +68,10 @@ export function SwapStatusPanel({ id }: { id: number }) {
   if (data.status === "refunded") {
     return (
       <StateBlock title="Swap didn't go through">
-        Your {data.fromSymbol} is back in your balance. If the coins had already been sent, the network fee
-        for sending them isn't returned.
+        {data.amountRefunded
+          ? `${formatUnits(data.amountRefunded, data.fromDecimals)} ${data.fromSymbol} is back in your balance.`
+          : `Your ${data.fromSymbol} is back in your balance.`}{" "}
+        If the coins had already been sent, the network fee for sending them isn't returned.
       </StateBlock>
     );
   }

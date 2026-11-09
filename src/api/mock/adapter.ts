@@ -195,8 +195,9 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     const swap = {
       id: mockSwaps.length + 1, status: "pending" as const, progress: "awaiting_deposit" as const,
       fromSymbol: from.symbol, toSymbol: to.symbol, fromDecimals: from.decimals, toDecimals: to.decimals,
-      amountIn: q.amount, networkFee: q.fee, expectedOut: q.out, minOut: q.min, amountOut: null, feeBps: 100,
-      depositTxHash: null, createdAt: new Date().toISOString(), settledAt: null, startedAt: Date.now(),
+      amountIn: q.amount, networkFee: q.fee, expectedOut: q.out, minOut: q.min, amountOut: null,
+      amountRefunded: null, feeBps: 100, depositTxHash: null, payoutTxHash: null,
+      createdAt: new Date().toISOString(), settledAt: null, startedAt: Date.now(),
     };
     mockSwaps.unshift(swap);
     return ok({ swap: advance(swap) }, config);

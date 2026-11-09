@@ -4,7 +4,7 @@ import { PageShell } from "../components/PageShell";
 import { Icon } from "../components/Icon";
 import { Button } from "../components/Button";
 import { StateBlock } from "../components/StateBlock";
-import { toApiError } from "../api/http";
+import { toApiError, withRateLimitRetry } from "../api/http";
 import { parseUnits } from "../lib/format";
 import { parseBulkSendCsv, type BulkSendParseError } from "../lib/parseBulkSendCsv";
 import { downloadCsv } from "../lib/exportCsv";
@@ -108,11 +108,14 @@ export function BulkSend() {
     setPhase("resolving");
     for (const row of rows) {
       try {
-        const data = await estimateMutation.mutateAsync({
-          toPublicId: row.toPublicId,
-          symbol: activeSymbol,
-          amount: parseUnits(row.amountDisplay, selected.decimals),
-        });
+        // A long sheet runs into the per-minute limit: wait it out rather than fail the row.
+        const data = await withRateLimitRetry(() =>
+          estimateMutation.mutateAsync({
+            toPublicId: row.toPublicId,
+            symbol: activeSymbol,
+            amount: parseUnits(row.amountDisplay, selected.decimals),
+          }),
+        );
         patchRow(row.line, {
           status: "resolved",
           toUsername: data.toUsername,
@@ -135,12 +138,15 @@ export function BulkSend() {
       try {
         // the phase-1 token is long expired by now (review takes as long as
         // it takes) — get a fresh one right before actually sending
-        const est = await estimateMutation.mutateAsync({
-          toPublicId: row.toPublicId,
-          symbol: activeSymbol,
-          amount: parseUnits(row.amountDisplay, selected.decimals),
-        });
-        await confirmMutation.mutateAsync(est.token);
+        const est = await withRateLimitRetry(() =>
+          estimateMutation.mutateAsync({
+            toPublicId: row.toPublicId,
+            symbol: activeSymbol,
+            amount: parseUnits(row.amountDisplay, selected.decimals),
+          }),
+        );
+        // A 429 is refused before the token is spent, so retrying it can't send twice.
+        await withRateLimitRetry(() => confirmMutation.mutateAsync(est.token), 1);
         patchRow(row.line, { status: "sent" });
       } catch (err) {
         patchRow(row.line, { status: "failed", error: toApiError(err).message });
