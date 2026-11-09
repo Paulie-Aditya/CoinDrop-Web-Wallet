@@ -19,8 +19,9 @@ function score(c: SearchableCoin, q: string): number | null {
   if (native && chain.startsWith(q)) return 1;
   if (symbol.startsWith(q)) return 2;
   if (native && chain.includes(q)) return 3;
-  if (chain.startsWith(q)) return 4; // a token on a matching chain
-  if (symbol.includes(q)) return 5;
+  // The symbol says more than the chain: "eth" finds BSDETH before every token on Ethereum.
+  if (symbol.includes(q)) return 4;
+  if (chain.startsWith(q)) return 5; // a token on a matching chain
   if (chain.includes(q)) return 6;
   return null;
 }
