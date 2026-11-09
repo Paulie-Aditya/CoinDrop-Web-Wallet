@@ -3,6 +3,7 @@ import { CoinChip } from "../../components/CoinChip";
 import { Icon } from "../../components/Icon";
 import { formatUnits } from "../../lib/format";
 import { chainKey } from "./swapLabels";
+import { rankCoins } from "./coinSearch";
 import styles from "./CoinPicker.module.css";
 
 export interface PickerCoin {
@@ -58,10 +59,9 @@ export function CoinPicker({ title, coins, selected, chainIcons, onPick, onClose
   }
 
   const q = query.trim().toLowerCase();
-  const shown = coins.filter(
-    (c) =>
-      (chain === null || chainKey(c) === chain) &&
-      (!q || c.symbol.toLowerCase().includes(q) || c.chainName.toLowerCase().includes(q)),
+  const shown = rankCoins(
+    coins.filter((c) => chain === null || chainKey(c) === chain),
+    q,
   );
 
   return (
