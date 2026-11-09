@@ -1,4 +1,4 @@
-import type { Balance, BalancesResponse, SessionUser, Transaction } from "../types";
+import type { Balance, BalancesResponse, Currency, SessionUser, Transaction } from "../types";
 
 export const MOCK_USER: SessionUser = {
   id: "308453391777202176",
@@ -14,18 +14,21 @@ interface CoinDef {
   symbol: string;
   name: string;
   decimals: number;
+  chainId: number;
+  chainName: string;
+  isToken: boolean;
 }
 
 const COINS: Record<string, CoinDef> = {
-  BTC: { currencyId: 1, symbol: "BTC", name: "Bitcoin", decimals: 8 },
-  ETH: { currencyId: 2, symbol: "ETH", name: "Ethereum", decimals: 18 },
-  SOL: { currencyId: 3, symbol: "SOL", name: "Solana", decimals: 9 },
-  LTC: { currencyId: 4, symbol: "LTC", name: "Litecoin", decimals: 8 },
-  DOGE: { currencyId: 5, symbol: "DOGE", name: "Dogecoin", decimals: 8 },
-  USDC: { currencyId: 6, symbol: "USDC", name: "USD Coin", decimals: 6 },
-  XRP: { currencyId: 7, symbol: "XRP", name: "XRP", decimals: 6 },
-  TRX: { currencyId: 8, symbol: "TRX", name: "Tron", decimals: 6 },
-  WAXP: { currencyId: 9, symbol: "WAXP", name: "WAX", decimals: 8 },
+  BTC: { currencyId: 1, symbol: "BTC", name: "Bitcoin", decimals: 8, chainId: 100001, chainName: "Bitcoin", isToken: false },
+  ETH: { currencyId: 2, symbol: "ETH", name: "Ethereum", decimals: 18, chainId: 1, chainName: "Ethereum", isToken: false },
+  SOL: { currencyId: 3, symbol: "SOL", name: "Solana", decimals: 9, chainId: 100002, chainName: "Solana", isToken: false },
+  LTC: { currencyId: 4, symbol: "LTC", name: "Litecoin", decimals: 8, chainId: 100003, chainName: "Litecoin", isToken: false },
+  DOGE: { currencyId: 5, symbol: "DOGE", name: "Dogecoin", decimals: 8, chainId: 100004, chainName: "Dogecoin", isToken: false },
+  USDC: { currencyId: 6, symbol: "USDC", name: "USD Coin", decimals: 6, chainId: 1, chainName: "Ethereum", isToken: true },
+  XRP: { currencyId: 7, symbol: "XRP", name: "XRP", decimals: 6, chainId: 100008, chainName: "XRP", isToken: false },
+  TRX: { currencyId: 8, symbol: "TRX", name: "Tron", decimals: 6, chainId: 728126428, chainName: "Tron", isToken: false },
+  WAXP: { currencyId: 9, symbol: "WAXP", name: "WAX", decimals: 8, chainId: 100009, chainName: "WAX", isToken: false },
 };
 
 const balance = (sym: keyof typeof COINS, amount: string, usdValue: string): Balance => ({
@@ -44,6 +47,15 @@ const BALANCES: Balance[] = [
   balance("XRP", "210000000", "109.20"),
   balance("LTC", "320000000", "262.40"),
   balance("WAXP", "150000000000", "67.50"),
+];
+
+/** GET /wallet/currencies: every coin, held or not. */
+export const MOCK_CURRENCIES: Currency[] = [
+  ...Object.values(COINS).map(({ currencyId, symbol, decimals, chainId, chainName, isToken }) => ({
+    currencyId, symbol, decimals, chainId, chainName, isToken, depositable: true,
+  })),
+  { currencyId: 10, symbol: "USDT", decimals: 6, chainId: 1, chainName: "Ethereum", isToken: true, depositable: true },
+  { currencyId: 11, symbol: "BNB", decimals: 18, chainId: 56, chainName: "BNB Chain", isToken: false, depositable: true },
 ];
 
 export const MOCK_BALANCES: BalancesResponse = {

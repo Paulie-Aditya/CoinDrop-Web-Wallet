@@ -19,7 +19,13 @@ import type {
   WithdrawStatus,
   WithdrawStatusValue,
   WithdrawalsResponse,
+  Currency,
 } from "./types";
+
+export async function fetchCurrencies(): Promise<Currency[]> {
+  const { data } = await http.get<{ currencies: Currency[] }>("/wallet/currencies");
+  return data.currencies;
+}
 
 export async function fetchBalances(): Promise<BalancesResponse> {
   const { data } = await http.get<BalancesResponse>("/wallet/balances");

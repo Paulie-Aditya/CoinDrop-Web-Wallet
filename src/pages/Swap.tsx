@@ -20,7 +20,7 @@ import {
 import { SwapStatusPanel } from "../features/wallet/SwapStatusPanel";
 import { SwapHistoryCard } from "../features/wallet/SwapHistoryCard";
 import { CoinMark, CoinPicker, type PickerCoin } from "../features/wallet/CoinPicker";
-import { ROUTE_NAME, chainKey, etaLabel, feeLabel } from "../features/wallet/swapLabels";
+import { ROUTE_NAME, chainIconsFor, chainKey, etaLabel, feeLabel } from "../features/wallet/swapLabels";
 import type { SwapAsset, SwapQuote } from "../api/types";
 import styles from "./Swap.module.css";
 
@@ -92,7 +92,7 @@ export function Swap() {
   const held = new Map((balances.data?.balances ?? []).map((b) => [b.symbol, b.amount]));
   const holdings = swappable.filter((a) => /[1-9]/.test(held.get(a.symbol) ?? ""));
   // Each chain's own coin, for the small chain badge on tokens.
-  const chainIcons = new Map(swappable.filter((a) => a.isToken === false).map((a) => [chainKey(a), a.symbol]));
+  const chainIcons = chainIconsFor(swappable);
 
   const from = holdings.find((a) => a.symbol === fromSymbol) ?? holdings[0];
   const targets = swappable.filter((a) => a.symbol !== from?.symbol);

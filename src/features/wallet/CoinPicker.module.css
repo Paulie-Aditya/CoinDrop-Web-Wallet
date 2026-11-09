@@ -238,3 +238,56 @@
     animation: none;
   }
 }
+
+/* ── CoinField: a form field that opens the picker (deposit, withdraw) ── */
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.55rem 0.85rem 0.55rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg-deep);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.field:hover {
+  border-color: var(--line-strong);
+  background: rgba(22, 36, 86, 0.85);
+}
+
+.fieldText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+.fieldText strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.fieldText small {
+  overflow: hidden;
+  color: var(--ink-300);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldPlaceholder {
+  flex: 1;
+  padding-left: 0.25rem;
+  color: var(--ink-500);
+  font-size: 0.9rem;
+}
+
+.fieldChevron {
+  flex: none;
+  color: var(--ink-300);
+}

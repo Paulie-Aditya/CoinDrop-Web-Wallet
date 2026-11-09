@@ -31,6 +31,22 @@ export interface Balance {
   amount: string;
   /** USD value of `amount`, as a decimal string; null if the coin has no price */
   usdValue: string | null;
+  /** the coin's chain; older backends omit these */
+  chainId?: number | null;
+  chainName?: string | null;
+  isToken?: boolean;
+}
+
+/** Every coin CoinDrop supports (GET /wallet/currencies), for coin pickers. */
+export interface Currency {
+  currencyId: number;
+  symbol: string;
+  decimals: number;
+  chainId: number | null;
+  chainName: string | null;
+  isToken: boolean;
+  /** /wallet/deposit can hand out an address for it */
+  depositable: boolean;
 }
 
 export interface BalancesResponse {

@@ -6,19 +6,51 @@ import { CopyButton } from "../components/CopyButton";
 import { CoinLoader } from "../components/CoinLoader";
 import { StateBlock } from "../components/StateBlock";
 import { toApiError } from "../api/http";
-import { useBalances } from "../features/wallet/useBalances";
+import { useBalances, useCurrencies } from "../features/wallet/useBalances";
+import { CoinField } from "../features/wallet/CoinField";
+import type { PickerCoin } from "../features/wallet/CoinPicker";
+import { chainIconsFor } from "../features/wallet/swapLabels";
 import { useDepositAddress } from "../features/wallet/useDeposit";
 import styles from "./WalletActions.module.css";
 
 export function Deposit() {
   const balances = useBalances();
-  const knownSymbols = [...new Set((balances.data?.balances ?? []).map((b) => b.symbol))].sort();
+  const currencies = useCurrencies();
+  const held = new Map((balances.data?.balances ?? []).map((b) => [b.symbol, b]));
 
-  const [symbol, setSymbol] = useState<string | null>(knownSymbols[0] ?? null);
-  const [useCustom, setUseCustom] = useState(knownSymbols.length === 0);
+  // Every coin that can be deposited; before the backend lists them, the coins you hold.
+  const coins: PickerCoin[] = currencies.data
+    ? currencies.data
+        .filter((c) => c.depositable)
+        .map((c) => ({
+          symbol: c.symbol,
+          chainName: c.chainName ?? "",
+          chainId: c.chainId ?? undefined,
+          isToken: c.isToken,
+          decimals: c.decimals,
+          balance: held.get(c.symbol)?.amount,
+        }))
+    : [...held.values()]
+        .sort((a, b) => a.symbol.localeCompare(b.symbol))
+        .map((b) => ({
+          symbol: b.symbol,
+          chainName: b.chainName ?? "",
+          chainId: b.chainId ?? undefined,
+          isToken: b.isToken,
+          decimals: b.decimals,
+          balance: b.amount,
+        }));
+  const chainIcons = chainIconsFor(currencies.data ?? [...held.values()]);
+  // Only without the full list can a coin be missing from the picker.
+  const canTypeSymbol = !currencies.data && !currencies.isPending;
+
+  const [symbol, setSymbol] = useState<string | null>(null);
+  const [useCustom, setUseCustom] = useState(false);
   const [customSymbol, setCustomSymbol] = useState("");
 
-  const activeSymbol = useCustom ? customSymbol.trim().toUpperCase() || null : symbol;
+  const firstHeld = [...held.keys()].sort()[0] ?? null;
+  const typing = canTypeSymbol && (useCustom || coins.length === 0);
+  const activeSymbol = typing ? customSymbol.trim().toUpperCase() || null : symbol ?? firstHeld;
   const deposit = useDepositAddress(activeSymbol);
 
   return (
@@ -40,28 +72,26 @@ export function Deposit() {
             Coin
           </label>
 
-          {!useCustom ? (
-            <div className={styles.row}>
-              <select
+          {!typing ? (
+            <>
+              <CoinField
                 id="deposit-symbol"
-                className={styles.select}
-                value={symbol ?? ""}
-                onChange={(e) => setSymbol(e.target.value || null)}
-              >
-                {knownSymbols.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={() => setUseCustom(true)}
-              >
-                Different coin?
-              </button>
-            </div>
+                title="Deposit"
+                coins={coins}
+                value={activeSymbol}
+                onChange={setSymbol}
+                chainIcons={chainIcons}
+              />
+              {canTypeSymbol && (
+                <button
+                  type="button"
+                  className={`btn btn--ghost btn--sm ${styles.inlineLink}`}
+                  onClick={() => setUseCustom(true)}
+                >
+                  Coin not listed?
+                </button>
+              )}
+            </>
           ) : (
             <div className={styles.row}>
               <input
@@ -73,13 +103,9 @@ export function Deposit() {
                 maxLength={10}
                 autoFocus
               />
-              {knownSymbols.length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setUseCustom(false)}
-                >
-                  Choose from balances
+              {coins.length > 0 && (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setUseCustom(false)}>
+                  Choose from list
                 </button>
               )}
             </div>

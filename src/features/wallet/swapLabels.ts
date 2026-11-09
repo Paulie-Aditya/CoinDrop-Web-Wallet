@@ -8,6 +8,17 @@ export function chainKey(c: { chainId?: number; chainName: string }): string {
   return c.chainId !== undefined ? String(c.chainId) : c.chainName;
 }
 
+/** chain key -> the symbol of that chain's own coin, for the badge on its tokens. */
+export function chainIconsFor(
+  coins: { chainId?: number | null; chainName?: string | null; isToken?: boolean; symbol: string }[],
+): Map<string, string> {
+  const icons = new Map<string, string>();
+  for (const c of coins) {
+    if (c.isToken === false) icons.set(chainKey({ chainId: c.chainId ?? undefined, chainName: c.chainName ?? "" }), c.symbol);
+  }
+  return icons;
+}
+
 export function etaLabel(seconds: number): string {
   if (!seconds) return "A few minutes";
   if (seconds < 90) return `About ${Math.max(1, Math.round(seconds))}s`;

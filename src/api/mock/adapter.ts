@@ -1,5 +1,5 @@
 import { AxiosError, type AxiosAdapter, type AxiosResponse } from "axios";
-import { MOCK_BALANCES, MOCK_TRANSACTIONS, MOCK_USER } from "./data";
+import { MOCK_BALANCES, MOCK_CURRENCIES, MOCK_TRANSACTIONS, MOCK_USER } from "./data";
 import type { Swap, SwapQuote, Transaction, TransactionsResponse } from "../types";
 
 /* A tiny in-browser stand-in for the wallet backend. Auth state lives in
@@ -158,6 +158,29 @@ export const mockAdapter: AxiosAdapter = async (config) => {
   if (path === "/auth/logout" && method === "post") {
     mockSession.end();
     return ok({ ok: true }, config);
+  }
+
+  const depositMatch = path.match(/^\/wallet\/deposit\/([A-Z0-9]+)$/i);
+  if (depositMatch && method === "get") {
+    if (!mockSession.isActive()) fail(401, "Not signed in", config);
+    const coin = MOCK_CURRENCIES.find((c) => c.symbol === depositMatch[1].toUpperCase());
+    if (!coin) fail(404, `${depositMatch[1].toUpperCase()} isn't supported.`, config);
+    const memo = coin!.chainName === "XRP" || coin!.chainName === "WAX";
+    return ok(
+      {
+        symbol: coin!.symbol,
+        chainName: coin!.chainName,
+        address: coin!.chainId === 1 || coin!.chainId === 56 ? "0x9f3c0d5be2a1c4e7b8d6f2a3c5e7d9b1a3c5e7f9" : `mock-${coin!.symbol.toLowerCase()}-deposit-address`,
+        memo: coin!.chainName === "WAX" ? "nova42" : null,
+        destinationTag: coin!.chainName === "XRP" && memo ? "4242" : null,
+      },
+      config,
+    );
+  }
+
+  if (path === "/wallet/currencies" && method === "get") {
+    if (!mockSession.isActive()) fail(401, "Not signed in", config);
+    return ok({ currencies: MOCK_CURRENCIES }, config);
   }
 
   if (path === "/wallet/balances" && method === "get") {

@@ -8,7 +8,9 @@ import { toApiError } from "../api/http";
 import { formatUnits, formatUnitsPlain, parseUnits } from "../lib/format";
 import { useCountdown } from "../lib/useCountdown";
 import { useCurrency } from "../features/currency/CurrencyContext";
-import { useBalances } from "../features/wallet/useBalances";
+import { useBalances, useCurrencies } from "../features/wallet/useBalances";
+import { CoinField } from "../features/wallet/CoinField";
+import { chainIconsFor } from "../features/wallet/swapLabels";
 import { useWithdrawConfirm, useWithdrawEstimate } from "../features/wallet/useWithdraw";
 import { WithdrawStatusPanel } from "../features/wallet/WithdrawStatusPanel";
 import type { WithdrawEstimate } from "../api/types";
@@ -28,6 +30,8 @@ export function Withdraw() {
   const { money } = useCurrency();
   const balances = useBalances();
   const holdings = (balances.data?.balances ?? []).filter((b) => /[1-9]/.test(b.amount));
+  const currencies = useCurrencies();
+  const chainIcons = chainIconsFor(currencies.data ?? holdings);
 
   const [symbol, setSymbol] = useState<string>("");
   const [toAddress, setToAddress] = useState("");
@@ -136,21 +140,24 @@ export function Withdraw() {
             <label className={styles.label} htmlFor="wd-symbol">
               Coin
             </label>
-            <select
+            <CoinField
               id="wd-symbol"
-              className={styles.select}
+              title="Withdraw"
+              coins={holdings.map((b) => ({
+                symbol: b.symbol,
+                chainName: b.chainName ?? "",
+                chainId: b.chainId ?? undefined,
+                isToken: b.isToken,
+                decimals: b.decimals,
+                balance: b.amount,
+              }))}
               value={activeSymbol}
-              onChange={(e) => {
-                setSymbol(e.target.value);
+              onChange={(next) => {
+                setSymbol(next);
                 setAmount("");
               }}
-            >
-              {holdings.map((b) => (
-                <option key={b.symbol} value={b.symbol}>
-                  {b.symbol}
-                </option>
-              ))}
-            </select>
+              chainIcons={chainIcons}
+            />
           </div>
 
           <div className={styles.field}>
