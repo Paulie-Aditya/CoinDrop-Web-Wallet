@@ -31,6 +31,34 @@ function unitsOf(amount: string, decimals: number): string | null {
   return /[1-9]/.test(units) ? units : null;
 }
 
+/** A fiat amount turned into a coin amount string, e.g. "0.00412000…", or "" if it can't be priced. */
+function coinFromFiat(fiat: string, fiatPerCoin: number, decimals: number): string {
+  const n = Number(fiat);
+  if (!(n > 0) || !(fiatPerCoin > 0)) return "";
+  const coins = n / fiatPerCoin;
+  if (!Number.isFinite(coins) || coins >= 1e21) return "";
+  return coins.toFixed(Math.min(decimals, 20));
+}
+
+/** What to show in the coin field after switching from fiat: at most 8 decimals, trailing zeros trimmed. */
+function trimCoin(plain: string): string {
+  const [whole, frac = ""] = plain.split(".");
+  const cut = frac.slice(0, 8).replace(/0+$/, "");
+  return cut ? `${whole}.${cut}` : whole;
+}
+
+/** "$", "₹", "€"… for a currency code, falling back to the code itself. */
+function currencySymbol(code: string): string {
+  try {
+    const part = new Intl.NumberFormat("en-US", { style: "currency", currency: code })
+      .formatToParts(0)
+      .find((p) => p.type === "currency");
+    return part?.value ?? code;
+  } catch {
+    return code;
+  }
+}
+
 /** "1 USDC = 0.000312 ETH", from what's actually swapped. */
 function rateLabel(q: SwapQuote): string | null {
   const paid = Number(formatUnitsPlain(q.from.swapAmount ?? q.from.amount, q.from.decimals));
@@ -76,7 +104,7 @@ function CoinButton({
 }
 
 export function Swap() {
-  const { money } = useCurrency();
+  const { money, fiatCode, fiatRate } = useCurrency();
   const balances = useBalances();
   const assets = useSwapAssets();
   const confirm = useSwapConfirm();
@@ -84,6 +112,10 @@ export function Swap() {
   const [fromSymbol, setFromSymbol] = useState("");
   const [toSymbol, setToSymbol] = useState("");
   const [amount, setAmount] = useState("");
+  // Type the amount in the coin, or in the display currency (converted at the balance's price).
+  const [mode, setMode] = useState<"coin" | "fiat">("coin");
+  // Max pressed: pay exactly the balance, whatever the fiat rounding says.
+  const [maxed, setMaxed] = useState(false);
   const [picker, setPicker] = useState<"from" | "to" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [swapId, setSwapId] = useState<number | null>(null);
@@ -102,7 +134,16 @@ export function Swap() {
     targets[0];
   const balance = from ? held.get(from.symbol) ?? "0" : "0";
 
-  const units = from ? unitsOf(amount, from.decimals) : null;
+  // The from coin's price in the display currency, off the balance snapshot (always held).
+  const fromBalance = balances.data?.balances.find((b) => b.symbol === from?.symbol);
+  const heldCoins = from ? Number(formatUnitsPlain(balance, from.decimals)) : 0;
+  const fiatPerCoin =
+    fromBalance?.usdValue && heldCoins > 0 ? (Number(fromBalance.usdValue) / heldCoins) * fiatRate : null;
+  const inFiat = mode === "fiat" && fiatPerCoin !== null;
+  const fiatSymbol = currencySymbol(fiatCode);
+
+  const coinAmount = inFiat && from ? coinFromFiat(amount, fiatPerCoin, from.decimals) : amount;
+  const units = !from ? null : maxed ? (/[1-9]/.test(balance) ? balance : null) : unitsOf(coinAmount, from.decimals);
   const tooMuch = units !== null && BigInt(units) > BigInt(balance);
   const settled = useDebounced(units, 600);
   const input =
@@ -121,6 +162,7 @@ export function Swap() {
       if (symbol === to?.symbol) setToSymbol(from?.symbol ?? "");
       setFromSymbol(symbol);
       setAmount("");
+      setMaxed(false);
     } else {
       setToSymbol(symbol);
     }
@@ -132,7 +174,31 @@ export function Swap() {
     setFromSymbol(to.symbol);
     setToSymbol(from.symbol);
     setAmount("");
+    setMaxed(false);
     setNotice(null);
+  }
+
+  function fillMax() {
+    if (!from) return;
+    setNotice(null);
+    setMaxed(true);
+    setAmount(
+      inFiat
+        ? (Math.floor(heldCoins * fiatPerCoin * 100) / 100).toFixed(2)
+        : formatUnitsPlain(balance, from.decimals),
+    );
+  }
+
+  /** Flip between typing coins and typing money, keeping the same amount. */
+  function switchMode(next: "coin" | "fiat") {
+    if (next === mode || !from) return;
+    setMode(next);
+    if (next === "fiat" && fiatPerCoin !== null) {
+      const coins = units !== null ? Number(formatUnitsPlain(units, from.decimals)) : 0;
+      setAmount(coins > 0 ? (Math.round(coins * fiatPerCoin * 100) / 100).toFixed(2) : "");
+    } else if (next === "coin") {
+      setAmount(units !== null ? trimCoin(formatUnitsPlain(units, from.decimals)) : "");
+    }
   }
 
   function handleSwap(e: FormEvent) {
@@ -158,6 +224,7 @@ export function Swap() {
   function startOver() {
     setSwapId(null);
     setAmount("");
+    setMaxed(false);
     setNotice(null);
     confirm.reset();
   }
@@ -248,7 +315,7 @@ export function Swap() {
                       <button
                         type="button"
                         className={styles.max}
-                        onClick={() => setAmount(formatUnitsPlain(balance, from.decimals))}
+                        onClick={fillMax}
                       >
                         Max
                       </button>
@@ -256,17 +323,24 @@ export function Swap() {
                   )}
                 </div>
                 <div className={styles.panelRow}>
+                  {inFiat && (
+                    <span className={styles.fiatPrefix} data-empty={!amount || undefined} aria-hidden="true">
+                      {fiatSymbol}
+                    </span>
+                  )}
                   <input
                     id="swap-amount"
                     className={styles.amount}
                     value={amount}
                     onChange={(e) => {
                       const next = e.target.value.replace(",", ".");
-                      if (/^\d*\.?\d*$/.test(next)) {
+                      if (inFiat ? /^\d*\.?\d{0,2}$/.test(next) : /^\d*\.?\d*$/.test(next)) {
                         setAmount(next);
+                        setMaxed(false);
                         setNotice(null);
                       }
                     }}
+                    aria-label={inFiat ? `Amount to pay, in ${fiatCode}` : undefined}
                     placeholder="0"
                     inputMode="decimal"
                     autoComplete="off"
@@ -279,13 +353,34 @@ export function Swap() {
                     onClick={() => setPicker("from")}
                   />
                 </div>
-                <p className={styles.sub} data-tone={tooMuch ? "error" : undefined}>
-                  {tooMuch
-                    ? `You hold ${formatUnits(balance, from?.decimals ?? 0)} ${from?.symbol}`
-                    : quote?.amountUsd
-                      ? money(quote.amountUsd)
-                      : " "}
-                </p>
+                <div className={styles.subRow}>
+                  <p className={styles.sub} data-tone={tooMuch ? "error" : undefined}>
+                    {tooMuch
+                      ? `You hold ${formatUnits(balance, from?.decimals ?? 0)} ${from?.symbol}`
+                      : inFiat
+                        ? units !== null && from
+                          ? `≈ ${formatUnits(units, from.decimals)} ${from.symbol}`
+                          : " "
+                        : quote?.amountUsd
+                          ? money(quote.amountUsd)
+                          : " "}
+                  </p>
+                  {from && fiatPerCoin !== null && (
+                    <div className={styles.unitToggle} role="group" aria-label="Enter the amount in">
+                      <button type="button" aria-pressed={!inFiat} onClick={() => switchMode("coin")}>
+                        {from.symbol}
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={inFiat}
+                        onClick={() => switchMode("fiat")}
+                        title={`Enter the amount in ${fiatCode}`}
+                      >
+                        {fiatSymbol === fiatCode ? fiatCode : `${fiatSymbol} ${fiatCode}`}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button

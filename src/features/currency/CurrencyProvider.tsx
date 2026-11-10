@@ -53,8 +53,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     return formatMoney(n * Number(rate), code);
   }
 
+  const selectedRate = code !== "USD" ? Number(data?.rates[code]) : NaN;
+  const fiatRate = selectedRate > 0 ? selectedRate : 1;
+  const fiatCode = selectedRate > 0 ? code : "USD";
+
   return (
-    <CurrencyContext.Provider value={{ code, setCode, codes, money }}>
+    <CurrencyContext.Provider value={{ code, setCode, codes, money, fiatCode, fiatRate }}>
       {children}
     </CurrencyContext.Provider>
   );
