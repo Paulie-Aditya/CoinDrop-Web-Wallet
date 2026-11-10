@@ -1,7 +1,21 @@
-import type { SwapProgress } from "../../api/types";
+import { formatUnits } from "../../lib/format";
+import type { SwapProgress, SwapStatusValue } from "../../api/types";
 
-/** Users only ever see this; which venue CrossFare used stays in the database. */
+/** The routing service. Each swap also names the venues it goes through (routeLabel). */
 export const ROUTE_NAME = "Crossfare";
+
+/** "PancakeSwap", or "2 steps: CHAINFLIP, then Uniswap, through 0.2 ETH". */
+export function routeLabel(
+  steps: string[] | undefined,
+  hub?: { symbol: string; decimals: number; amount?: string | null } | null,
+): string {
+  if (!steps?.length) return ROUTE_NAME;
+  if (steps.length === 1) return steps[0];
+  const through = hub
+    ? `, through ${hub.amount ? `${formatUnits(hub.amount, hub.decimals)} ` : ""}${hub.symbol}`
+    : "";
+  return `${steps.length} steps: ${steps.slice(0, -1).join(", ")}, then ${steps[steps.length - 1]}${through}`;
+}
 
 /** Groups coins by chain: CoinDrop's chain id, or its name on older backends. */
 export function chainKey(c: { chainId?: number; chainName: string }): string {
@@ -31,10 +45,19 @@ export function feeLabel(bps: number): string {
 
 export const PROGRESS_COPY: Record<SwapProgress, string> = {
   awaiting_deposit: "Sending your coins to the swap",
+  awaiting_next_leg: "Starting the second step",
   confirming: "Waiting for network confirmations",
   exchanging: "Swapping",
   completed: "Crediting your balance",
   refunded: "Returning your coins",
   failed: "Returning your coins",
   expired: "Checking on your swap",
+};
+
+export const STATUS_LABEL: Record<SwapStatusValue, string> = {
+  pending: "In progress",
+  completed: "Completed",
+  refunded: "Refunded",
+  needs_review: "Under review",
+  hub_credited: "Stopped halfway",
 };

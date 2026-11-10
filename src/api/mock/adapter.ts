@@ -68,7 +68,15 @@ const SWAP_ASSETS = [
   { currencyId: 8, symbol: "SOLUSDC", decimals: 6, chainId: 100002, chainName: "Solana", isToken: true, usd: 1 },
 ];
 const MOCK_SWAP_STAGE_MS = 6000;
-const mockSwaps: (Swap & { startedAt: number })[] = [];
+const mockSwaps: (Swap & { startedAt: number; stopsHalfway?: boolean })[] = [];
+
+/** The venues a mock quote goes through. LTC -> SOLUSDC has no direct route, so it goes in
+ *  two steps through SOL: SwapKit (NEAR) into SOL, then Jupiter. */
+function mockSteps(from: (typeof SWAP_ASSETS)[number], to: (typeof SWAP_ASSETS)[number]): string[] {
+  if (from.symbol === "LTC" && to.symbol === "SOLUSDC") return ["NEAR", "Jupiter"];
+  if (from.chainName === to.chainName) return [from.chainName === "Solana" ? "Jupiter" : "Uniswap"];
+  return ["NEAR"];
+}
 
 function mockQuote(body: { fromSymbol: string; toSymbol: string; amount: string }): SwapQuote | null {
   const from = SWAP_ASSETS.find((a) => a.symbol === body.fromSymbol);
@@ -92,19 +100,37 @@ function mockQuote(body: { fromSymbol: string; toSymbol: string; amount: string 
     amountUsd: usdIn.toFixed(2),
     receiveUsd: (out * to.usd).toFixed(2),
     expiresInSeconds: 600,
+    route: { steps: mockSteps(from, to), hub: mockHub(from, to, usdIn) },
   };
 }
 
-function advance(swap: Swap & { startedAt: number }): Swap {
+/** A two-step mock route's hub: SOL worth what goes in. */
+function mockHub(from: (typeof SWAP_ASSETS)[number], to: (typeof SWAP_ASSETS)[number], usdIn: number) {
+  if (mockSteps(from, to).length !== 2) return null;
+  const sol = SWAP_ASSETS.find((a) => a.symbol === "SOL")!;
+  const amount = BigInt(Math.floor((usdIn * 0.99 / sol.usd) * 10 ** sol.decimals));
+  return { symbol: sol.symbol, decimals: sol.decimals, amount: amount.toString(), networkFee: "15000" };
+}
+
+function advance(swap: Swap & { startedAt: number; stopsHalfway?: boolean }): Swap {
   const age = Date.now() - swap.startedAt;
   if (swap.status === "pending") {
-    const stages = ["awaiting_deposit", "confirming", "exchanging"] as const;
+    const twoSteps = swap.legCount === 2;
+    const stages = twoSteps
+      ? (["awaiting_deposit", "confirming", "exchanging", "awaiting_next_leg", "exchanging"] as const)
+      : (["awaiting_deposit", "confirming", "exchanging"] as const);
     const i = Math.floor(age / MOCK_SWAP_STAGE_MS);
-    if (i < stages.length) swap.progress = stages[i];
+    if (twoSteps && i >= 3) swap.amountHub = swap.amountHub ?? "70000000";
+    if (twoSteps && i >= 4 && !swap.stopsHalfway) swap.leg = 2;
+    if (twoSteps && i >= 4 && swap.stopsHalfway) {
+      // Typing an amount starting with 77 shows a second step that never goes through.
+      Object.assign(swap, { status: "hub_credited", progress: "awaiting_next_leg", hubCredited: swap.amountHub, settledAt: new Date().toISOString() });
+    } else if (i < stages.length) swap.progress = stages[i];
     else Object.assign(swap, { status: "completed", progress: "completed", amountOut: swap.expectedOut, settledAt: new Date().toISOString() });
   }
-  const rest: Swap & { startedAt?: number } = { ...swap };
+  const rest: Swap & { startedAt?: number; stopsHalfway?: boolean } = { ...swap };
   delete rest.startedAt;
+  delete rest.stopsHalfway;
   return rest;
 }
 
@@ -215,7 +241,12 @@ export const mockAdapter: AxiosAdapter = async (config) => {
     const q = JSON.parse(atob(JSON.parse(String(config.data ?? "{}")).token));
     const from = SWAP_ASSETS.find((a) => a.symbol === q.fromSymbol)!;
     const to = SWAP_ASSETS.find((a) => a.symbol === q.toSymbol)!;
+    const steps = mockSteps(from, to);
+    const twoSteps = steps.length === 2;
     const swap = {
+      route: { steps }, legCount: twoSteps ? 2 : 1, leg: 1,
+      hubSymbol: twoSteps ? "SOL" : null, hubDecimals: twoSteps ? 9 : null, amountHub: null, hubCredited: null,
+      stopsHalfway: twoSteps && String(q.amount).startsWith("77"),
       id: mockSwaps.length + 1, status: "pending" as const, progress: "awaiting_deposit" as const,
       fromSymbol: from.symbol, toSymbol: to.symbol, fromDecimals: from.decimals, toDecimals: to.decimals,
       amountIn: q.amount, networkFee: q.fee, expectedOut: q.out, minOut: q.min, amountOut: null,

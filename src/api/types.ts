@@ -268,6 +268,14 @@ export interface SwapQuoteInput {
   amount: string;
 }
 
+/** The steps a swap takes, named by venue ("Uniswap") or SwapKit provider ("CHAINFLIP"). */
+export interface SwapRoute {
+  steps: string[];
+  /** Two-step routes: the coin the swap waits in between steps, how much of it the second
+   *  step runs on, and how much is kept back to pay the second step's network fee. */
+  hub?: { symbol: string; decimals: number; amount: string; networkFee: string } | null;
+}
+
 export interface SwapQuote {
   token: string;
   /** amount: what leaves the balance; swapAmount: what's swapped after the network fee */
@@ -280,14 +288,20 @@ export interface SwapQuote {
   amountUsd: string | null;
   receiveUsd: string | null;
   expiresInSeconds: number;
+  /** older backends omit it */
+  route?: SwapRoute;
 }
 
-/** pending until CrossFare reports it final; needs_review means support looks at it. */
-export type SwapStatusValue = "pending" | "completed" | "refunded" | "needs_review";
+/** pending until CrossFare reports it final; needs_review means support looks at it;
+ *  hub_credited: a two-step swap whose second step never went through, so the user got the
+ *  coin in between (hubSymbol) instead. */
+export type SwapStatusValue = "pending" | "completed" | "refunded" | "needs_review" | "hub_credited";
 
 /** CrossFare's live stage while pending. */
 export type SwapProgress =
   | "awaiting_deposit"
+  /** a two-step swap's first step delivered; the second is being started */
+  | "awaiting_next_leg"
   | "confirming"
   | "exchanging"
   | "completed"
@@ -318,6 +332,17 @@ export interface Swap {
   payoutTxHash: string | null;
   createdAt: string;
   settledAt: string | null;
+  /** older backends omit these */
+  route?: { steps: string[] };
+  legCount?: number;
+  /** the step in progress, 1-based */
+  leg?: number;
+  hubSymbol?: string | null;
+  hubDecimals?: number | null;
+  /** what the first step delivered, in the hub coin */
+  amountHub?: string | null;
+  /** set when status is hub_credited: what was credited, in the hub coin */
+  hubCredited?: string | null;
 }
 
 export interface SwapsResponse {

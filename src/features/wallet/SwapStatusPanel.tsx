@@ -8,16 +8,23 @@ import { toApiError } from "../../api/http";
 import { formatUnits } from "../../lib/format";
 import type { Swap } from "../../api/types";
 import { refreshAfterSwap, useSwapStatus } from "./useSwap";
-import { ROUTE_NAME } from "./swapLabels";
+import { ROUTE_NAME, routeLabel } from "./swapLabels";
 import styles from "../../pages/Swap.module.css";
 
 type StepState = "done" | "active" | "todo";
 
-/** Which of the three steps a swap is on: sending, swapping, credited. */
-function stepStates(swap: Swap): [StepState, StepState, StepState] {
-  if (swap.status === "completed") return ["done", "done", "done"];
-  if (swap.progress === "exchanging" || swap.progress === "completed") return ["done", "active", "todo"];
-  return ["active", "todo", "todo"];
+/** How far along a swap is: 0 sending, 1 swapping (a two-step swap's first step),
+ *  2 its second step, then credited. */
+function stage(swap: Swap): number {
+  const twoSteps = (swap.legCount ?? 1) === 2;
+  if (swap.status === "completed") return twoSteps ? 4 : 3;
+  if (twoSteps && ((swap.leg ?? 1) >= 2 || swap.progress === "awaiting_next_leg")) return 2;
+  if (swap.progress === "exchanging" || swap.progress === "completed") return 1;
+  return 0;
+}
+
+function stepState(index: number, at: number): StepState {
+  return index < at ? "done" : index === at ? "active" : "todo";
 }
 
 function Header({ swap }: { swap: Swap }) {
@@ -76,6 +83,19 @@ export function SwapStatusPanel({ id }: { id: number }) {
     );
   }
 
+  if (data.status === "hub_credited") {
+    const hub = data.hubSymbol ?? "the coin in between";
+    return (
+      <StateBlock title="Swap stopped halfway">
+        This swap went in two steps, through {hub}. The first step went through, but the second couldn't, so{" "}
+        {data.hubCredited && data.hubDecimals != null
+          ? `${formatUnits(data.hubCredited, data.hubDecimals)} ${hub} is`
+          : `the ${hub} is`}{" "}
+        in your balance instead of {data.toSymbol}. You can swap it again whenever you like.
+      </StateBlock>
+    );
+  }
+
   if (data.status === "needs_review") {
     return (
       <StateBlock tone="error" title="This swap needs a manual check">
@@ -86,12 +106,24 @@ export function SwapStatusPanel({ id }: { id: number }) {
     );
   }
 
-  const [sending, swapping, credited] = stepStates(data);
+  const venues = data.route?.steps ?? [];
+  const twoSteps = (data.legCount ?? 1) === 2 && venues.length === 2;
+  const hub = data.hubSymbol ?? "the coin in between";
+  const at = stage(data);
+  const swapping = twoSteps
+    ? [
+        { title: `Swapping on ${venues[0]}`, detail: `${data.fromSymbol} into ${hub}` },
+        {
+          title: `Swapping on ${venues[1]}`,
+          detail: `${hub} into ${data.toSymbol}. If this step can't go through, you get the ${hub}`,
+        },
+      ]
+    : [{ title: `Swapping on ${venues[0] ?? ROUTE_NAME}`, detail: `${data.fromSymbol} into ${data.toSymbol}` }];
   const steps: { state: StepState; title: string; detail: string }[] = [
-    { state: sending, title: `Sending your ${data.fromSymbol}`, detail: "From CoinDrop's wallet to the swap" },
-    { state: swapping, title: `Swapping on ${ROUTE_NAME}`, detail: `${data.fromSymbol} into ${data.toSymbol}` },
-    { state: credited, title: "Added to your balance", detail: `Your ${data.toSymbol} lands in your CoinDrop wallet` },
-  ];
+    { title: `Sending your ${data.fromSymbol}`, detail: "From CoinDrop's wallet to the swap" },
+    ...swapping,
+    { title: "Added to your balance", detail: `Your ${data.toSymbol} lands in your CoinDrop wallet` },
+  ].map((step, i) => ({ ...step, state: stepState(i, at) }));
 
   return (
     <div>
@@ -131,7 +163,12 @@ export function SwapStatusPanel({ id }: { id: number }) {
         </div>
         <div>
           <dt>Route</dt>
-          <dd>{ROUTE_NAME}</dd>
+          <dd>
+            {routeLabel(
+              data.route?.steps,
+              data.hubSymbol ? { symbol: data.hubSymbol, decimals: data.hubDecimals ?? 0, amount: data.amountHub } : null,
+            )}
+          </dd>
         </div>
       </dl>
 

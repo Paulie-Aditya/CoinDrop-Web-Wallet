@@ -20,7 +20,7 @@ import {
 import { SwapStatusPanel } from "../features/wallet/SwapStatusPanel";
 import { SwapHistoryCard } from "../features/wallet/SwapHistoryCard";
 import { CoinMark, CoinPicker, type PickerCoin } from "../features/wallet/CoinPicker";
-import { ROUTE_NAME, chainIconsFor, chainKey, etaLabel, feeLabel } from "../features/wallet/swapLabels";
+import { ROUTE_NAME, chainIconsFor, chainKey, etaLabel, feeLabel, routeLabel } from "../features/wallet/swapLabels";
 import type { SwapAsset, SwapQuote } from "../api/types";
 import styles from "./Swap.module.css";
 
@@ -257,6 +257,8 @@ export function Swap() {
 
   const feeBps = assets.data?.feeBps ?? 100;
   const busy = confirm.isPending;
+  // A two-step route waits in this coin between its steps.
+  const hub = quote && !pricing ? quote.route?.hub ?? null : null;
 
   let action = `Swap ${from?.symbol ?? ""} for ${to?.symbol ?? ""}`;
   if (busy) action = "Starting swap…";
@@ -461,8 +463,16 @@ export function Swap() {
                     </div>
                     <div>
                       <dt>Route</dt>
-                      <dd>{ROUTE_NAME}</dd>
+                      <dd>{routeLabel(quote.route?.steps, quote.route?.hub)}</dd>
                     </div>
+                    {hub && /[1-9]/.test(hub.networkFee) && (
+                      <div>
+                        <dt>Second step's network fee</dt>
+                        <dd className="mono">
+                          {formatUnits(hub.networkFee, hub.decimals)} {hub.symbol}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Estimated time</dt>
                       <dd>{etaLabel(quote.etaSeconds)}</dd>
@@ -493,7 +503,11 @@ export function Swap() {
               </button>
               <p className={styles.note}>
                 {quote && from
-                  ? `Confirming takes ${formatUnits(quote.from.amount, from.decimals)} ${from.symbol} from your balance, network fee included. If the swap fails, it comes back.`
+                  ? `Confirming takes ${formatUnits(quote.from.amount, from.decimals)} ${from.symbol} from your balance, network fee included. ${
+                      hub
+                        ? `This swap goes in two steps, through ${hub.symbol}. If the first step fails, your ${from.symbol} comes back; if the second can't go through, you get the ${hub.symbol} instead.`
+                        : "If the swap fails, it comes back."
+                    }`
                   : "Nothing leaves your balance until you confirm."}
               </p>
             </fieldset>

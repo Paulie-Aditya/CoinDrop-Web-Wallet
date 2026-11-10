@@ -5,21 +5,15 @@ import { absoluteTime, formatUnits, relativeTime } from "../../lib/format";
 import { toApiError } from "../../api/http";
 import type { Swap, SwapStatusValue } from "../../api/types";
 import { useSwapStatus, useSwaps } from "./useSwap";
-import { PROGRESS_COPY, ROUTE_NAME } from "./swapLabels";
+import { PROGRESS_COPY, STATUS_LABEL, routeLabel } from "./swapLabels";
 import styles from "./cards.module.css";
-
-const STATUS_LABEL: Record<SwapStatusValue, string> = {
-  pending: "In progress",
-  completed: "Completed",
-  refunded: "Refunded",
-  needs_review: "Under review",
-};
 
 const STATUS_COLOR: Record<SwapStatusValue, string> = {
   pending: "var(--gold)",
   completed: "var(--pos)",
   refunded: "var(--ink-300)",
   needs_review: "var(--neg)",
+  hub_credited: "var(--gold)",
 };
 
 function SwapRow({ swap: initial }: { swap: Swap }) {
@@ -28,6 +22,8 @@ function SwapRow({ swap: initial }: { swap: Swap }) {
   const swap = live.data ?? initial;
   const done = swap.status === "completed";
   const received = done ? swap.amountOut ?? swap.expectedOut : swap.expectedOut;
+  // Stopped halfway: what the user got is the coin in between.
+  const gotHub = swap.status === "hub_credited" && !!swap.hubCredited && swap.hubDecimals != null;
   const status =
     swap.status === "pending" && swap.progress ? PROGRESS_COPY[swap.progress] : STATUS_LABEL[swap.status];
 
@@ -47,13 +43,14 @@ function SwapRow({ swap: initial }: { swap: Swap }) {
             {relativeTime(swap.createdAt)}
           </time>
           {" · "}
-          {ROUTE_NAME}
+          {routeLabel(swap.route?.steps)}
         </span>
       </span>
       <span className={styles.rowAmount}>
-        <span className="mono" style={{ color: done ? "var(--pos)" : undefined }}>
-          {done ? "+" : "≈ "}
-          {formatUnits(received, swap.toDecimals)} {swap.toSymbol}
+        <span className="mono" style={{ color: done || gotHub ? "var(--pos)" : undefined }}>
+          {gotHub
+            ? `+${formatUnits(swap.hubCredited!, swap.hubDecimals!)} ${swap.hubSymbol}`
+            : `${done ? "+" : "≈ "}${formatUnits(received, swap.toDecimals)} ${swap.toSymbol}`}
         </span>
         <span className={`${styles.rowMeta} mono`}>
           −{formatUnits(swap.amountIn, swap.fromDecimals)} {swap.fromSymbol}
